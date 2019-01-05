@@ -4,18 +4,6 @@ module RdfSharpTests
 open MyNamespace
 open NUnit.Framework
 
-[<Test>]
-let ``Default constructor should create instance`` () =
-    Assert.AreEqual("My internal state", MyType().InnerState)
-
-[<Test>]
-let ``Constructor with parameter should create instance`` () =
-    Assert.AreEqual("override", MyType("override").InnerState)
-
-[<Test>]
-let ``Method with ReflectedDefinition parameter should get its name`` () =
-    let myValue = 2
-    Assert.AreEqual("myValue", MyType.NameOf(myValue))
 
 type Generative2 = RdfSharp.GenerativeProvider<2>
 type Generative4 = RdfSharp.GenerativeProvider<4>
