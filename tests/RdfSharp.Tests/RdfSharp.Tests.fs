@@ -1,24 +1,13 @@
 module RdfSharpTests
 
-
-open MyNamespace
 open NUnit.Framework
+open RdfSharp
 
+//type Rdfs = RdfPropertyProvider<"""http://www.w3.org/2000/01/rdf-schema""">
 
-type Generative2 = RdfSharp.GenerativeProvider<2>
-type Generative4 = RdfSharp.GenerativeProvider<4>
+//[<Test>]
+//let ``Can access rdfs properties`` () =    
+//    Assert.AreEqual("http://www.w3.org/2000/01/rdf-schema#label", Rdfs.label.ToString())
+//    Assert.AreEqual("#comment", Rdfs.comment.Fragment)
 
-[<Test>]
-let ``Can access properties of generative provider 2`` () =
-    let obj = Generative2()
-    Assert.AreEqual(obj.Property1, 1)
-    Assert.AreEqual(obj.Property2, 2)
-
-[<Test>]
-let ``Can access properties of generative provider 4`` () =
-    let obj = Generative4()
-    Assert.AreEqual(obj.Property1, 1)
-    Assert.AreEqual(obj.Property2, 2)
-    Assert.AreEqual(obj.Property3, 3)
-    Assert.AreEqual(obj.Property4, 4)
 

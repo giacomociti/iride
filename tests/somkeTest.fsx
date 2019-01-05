@@ -4,6 +4,5 @@
 
 open RdfSharp
 
-type T = GenerativeProvider<2>
-
-T.StaticMethod()
+type Rdfs = RdfPropertyProvider<"""http://www.w3.org/2000/01/rdf-schema""">
+Rdfs.label.ToString()
