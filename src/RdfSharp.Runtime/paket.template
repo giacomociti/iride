@@ -1,25 +1,19 @@
 type file
-id RdfSharp
+id RdfSharper
 authors
-    Steffen Forkmann, Gustavo Guerra, JohnDoeKyrgyz, Don Syme
+    Giacomo Citi
 owners
-    Steffen Forkmann, Gustavo Guerra, JohnDoeKyrgyz, Don Syme
+    Giacomo Citi
 projectUrl
-    http://github.com/fsprojects/RdfSharp
-iconUrl
-    https://raw.githubusercontent.com/fsprojects/RdfSharp/master/docs/files/img/logo.png
-licenseUrl
-    http://github.com/fsprojects/RdfSharp/blob/master/LICENSE.txt
+    http://github.com/giacomociti/RdfSharp
 requireLicenseAcceptance
     false
 tags
-    F# fsharp typeproviders RdfSharp
+    F# fsharp typeproviders RDF
 summary
-    This library is for the .NET platform implementing RdfSharp.
+    F# generative type provider for RDF properties
 description
-    This library is for the .NET platform implementing RdfSharp.
-tags
-    F# fsharp typeproviders RdfSharp
+    Generates .Net Uri properties for RDF properties in ontologies
 files
     bin/Release/net45/RdfSharp.Runtime.* ==> lib/net45
     bin/Release/netstandard2.0/RdfSharp.Runtime.* ==> lib/netstandard2.0
