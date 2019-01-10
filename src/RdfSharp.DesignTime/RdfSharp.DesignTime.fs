@@ -26,11 +26,11 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
     do assert (typeof<DataSource>.Assembly.GetName().Name = asm.GetName().Name)  
 
-    let createType typeName (rdfSchemaUri: string) =
+    let createType typeName (rdfSchemaUri: string) (sparqlQuery) =
         let asm = ProvidedAssembly()
         let result = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
         
-        for property in withGraph getProperties rdfSchemaUri do
+        for property in withGraph (getProperties sparqlQuery) rdfSchemaUri do
             let uri = property.Uri.ToString()
             let providedProperty = 
                 ProvidedProperty(
@@ -47,9 +47,11 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
     let myParamType = 
         let result =
             ProvidedTypeDefinition(asm, ns, "RdfPropertyProvider", Some typeof<obj>, isErased = false)
-        result.DefineStaticParameters(
-            [ProvidedStaticParameter("RdfSchemaUri", typeof<string>)],
-            fun typeName args -> createType typeName (string args.[0]))
+        result.DefineStaticParameters([
+                ProvidedStaticParameter("RdfSchemaUri", typeof<string>)
+                ProvidedStaticParameter("SparqlQuery", typeof<string>, RdfHelper.properties)
+            ],
+            fun typeName args -> createType typeName (string args.[0]) (string args.[1])  )
         result
 
     do

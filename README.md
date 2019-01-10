@@ -1,6 +1,12 @@
 
 This is a simple F# type provider to create Uri properties
 from RDF properties in ontologies.
+
+    type Book = RdfPropertyProvider<"""https://schema.org/Book.ttl""">
+
+    let a: System.Uri = Book.author
+
+
 It has separate design-time and runtime assemblies.
 
 Paket is used to acquire the type provider SDK and build the nuget package (you can remove this use of paket if you like)

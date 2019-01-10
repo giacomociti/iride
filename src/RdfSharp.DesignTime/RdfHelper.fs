@@ -12,8 +12,7 @@
         UriLoader.Load(graph, Uri rdfFile)
         f graph
 
-    let getProperties (graph: IGraph) =
-        let results = graph.ExecuteQuery """
+    let properties = """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
@@ -23,6 +22,8 @@
                rdfs:comment ?comment .
         }
         """
+    let getProperties (query: string) (graph: IGraph) =
+        let results = graph.ExecuteQuery query
         [
             for r in results :?> SparqlResultSet do
                 yield { Uri = (r.["uri"] :?> IUriNode).Uri
