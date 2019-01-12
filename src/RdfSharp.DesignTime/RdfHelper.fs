@@ -4,32 +4,6 @@ open System
 
 type Property = { Uri: Uri; Label: string; Comment: string }
 
-module Query =
-
-    [<Literal>]
-    let RdfProperties = """
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-
-        SELECT ?uri ?label ?comment WHERE {
-          ?uri a rdf:Property ;
-               rdfs:label ?label ;
-               rdfs:comment ?comment .
-        }
-        """
-
-    [<Literal>]
-    let RdfsClasses = """
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-
-        SELECT ?uri ?label ?comment WHERE {
-          ?uri a rdfs:Class ;
-               rdfs:label ?label ;
-               rdfs:comment ?comment .
-        }
-        """
-
-
 module RdfHelper =
 
     open VDS.RDF

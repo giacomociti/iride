@@ -3,7 +3,6 @@ module RdfSharpImplementation
 open System
 open System.Reflection
 open FSharp.Core.CompilerServices
-//open ProviderImplementation
 open ProviderImplementation.ProvidedTypes
 open Iride
 
