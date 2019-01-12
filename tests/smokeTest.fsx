@@ -2,7 +2,7 @@
 #I "../src/Iride/bin/Release/netstandard2.0/"
 #r "Iride.dll"
 
-open RdfSharp
+open Iride
 
 type Rdf = RdfPropertyProvider<"""http://www.w3.org/1999/02/22-rdf-syntax-ns""">
 

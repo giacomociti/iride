@@ -13,7 +13,7 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Iride.DesignTime", "src\Iri
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{ED8079DD-2B06-4030-9F0F-DC548F98E1C4}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "RdfSharp.Tests", "tests\RdfSharp.Tests\RdfSharp.Tests.fsproj", "{5EBB88F8-9F50-4732-A59C-647A81C7FF73}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Iride.Tests", "tests\Iride.Tests\Iride.Tests.fsproj", "{5EBB88F8-9F50-4732-A59C-647A81C7FF73}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

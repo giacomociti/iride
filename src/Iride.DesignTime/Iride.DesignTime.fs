@@ -1,4 +1,4 @@
-module RdfSharpImplementation
+module IrideImplementation
 
 open System
 open System.Reflection
@@ -11,7 +11,7 @@ open Iride
 type BasicGenerativeProvider (config : TypeProviderConfig) as this =
     inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("Iride.DesignTime", "Iride")])
 
-    let ns = "RdfSharp"
+    let ns = "Iride"
     let asm = Assembly.GetExecutingAssembly()
 
     // check we contain a copy of runtime files, and are not referencing the runtime DLL

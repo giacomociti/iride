@@ -7,7 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <Compile Include="RdfSharp.Tests.fs" />
+    <Compile Include="Iride.Tests.fs" />
     <None Include="paket.references" />
   </ItemGroup>
   <ItemGroup>

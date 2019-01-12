@@ -1,11 +1,11 @@
 type file
-id RdfSharper
+id Iride
 authors
     Giacomo Citi
 owners
     Giacomo Citi
 projectUrl
-    http://github.com/giacomociti/RdfSharp
+    http://github.com/giacomociti/iride
 requireLicenseAcceptance
     false
 tags

@@ -1,7 +1,11 @@
-module RdfSharpTests
+module IrideTests
 
 open NUnit.Framework
-open RdfSharp
+open Iride
+
+[<Test>]
+let ``Can run tests ¯\_(ツ)_/¯`` () =  ()
+
 
 //type Rdfs = RdfPropertyProvider<"""http://www.w3.org/2000/01/rdf-schema""">
 
