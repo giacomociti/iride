@@ -9,7 +9,7 @@ open Iride
 
 [<TypeProvider>]
 type BasicGenerativeProvider (config : TypeProviderConfig) as this =
-    inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("RdfSharp.DesignTime", "RdfSharp.Runtime")])
+    inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("Iride.DesignTime", "RdfSharp.Runtime")])
 
     let ns = "RdfSharp"
     let asm = Assembly.GetExecutingAssembly()
