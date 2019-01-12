@@ -24,6 +24,7 @@ references
     RdfSharp.Runtime.dll
 dependencies
   FSharp.Core >= LOCKEDVERSION
+  dotNetRDF >= 2.1.0
 
 # put any package references here
 #  Some.Package
