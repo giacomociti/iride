@@ -1,20 +1,12 @@
 module RdfSharpImplementation
 
 open System
-open System.Collections.Generic
-open System.IO
 open System.Reflection
-open FSharp.Quotations
 open FSharp.Core.CompilerServices
-open MyNamespace
-open ProviderImplementation
+//open ProviderImplementation
 open ProviderImplementation.ProvidedTypes
-open RdfHelper
+open Iride
 
-// Put any utility helpers here
-[<AutoOpen>]
-module internal Helpers =
-    let x = 1
 
 [<TypeProvider>]
 type BasicGenerativeProvider (config : TypeProviderConfig) as this =
@@ -24,13 +16,13 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
     let asm = Assembly.GetExecutingAssembly()
 
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
-    do assert (typeof<DataSource>.Assembly.GetName().Name = asm.GetName().Name)  
+    do assert (typeof<Iride.UriFactory>.Assembly.GetName().Name = asm.GetName().Name)  
 
     let createType typeName (rdfSchemaUri: string) (sparqlQuery) =
         let asm = ProvidedAssembly()
         let result = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
         
-        for property in withGraph (getProperties sparqlQuery) rdfSchemaUri do
+        for property in RdfHelper.getGraphProperties rdfSchemaUri sparqlQuery do
             let uri = property.Uri.ToString()
             let providedProperty = 
                 ProvidedProperty(
@@ -49,7 +41,7 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
             ProvidedTypeDefinition(asm, ns, "RdfPropertyProvider", Some typeof<obj>, isErased = false)
         result.DefineStaticParameters([
                 ProvidedStaticParameter("RdfSchemaUri", typeof<string>)
-                ProvidedStaticParameter("SparqlQuery", typeof<string>, RdfHelper.properties)
+                ProvidedStaticParameter("SparqlQuery", typeof<string>, Query.RdfProperties)
             ],
             fun typeName args -> createType typeName (string args.[0]) (string args.[1])  )
         result

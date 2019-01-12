@@ -1,18 +1,11 @@
-﻿module RdfHelper
+﻿namespace Iride
 
-    open System
-    open VDS.RDF
-    open VDS.RDF.Parsing
-    open VDS.RDF.Query
+open System
 
-    type Property = { Uri: Uri; Label: string; Comment: string }
-        
-    let withGraph f rdfFile =
-        use graph = new Graph()
-        UriLoader.Load(graph, Uri rdfFile)
-        f graph
+type Property = { Uri: Uri; Label: string; Comment: string }
 
-    let properties = """
+module Query =
+    let RdfProperties = """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
@@ -22,6 +15,18 @@
                rdfs:comment ?comment .
         }
         """
+
+module RdfHelper =
+
+    open VDS.RDF
+    open VDS.RDF.Parsing
+    open VDS.RDF.Query
+        
+    let withGraph f rdfFile =
+        use graph = new Graph()
+        UriLoader.Load(graph, Uri rdfFile)
+        f graph
+
     let getProperties (query: string) (graph: IGraph) =
         let results = graph.ExecuteQuery query
         [
@@ -31,3 +36,6 @@
                         Comment = (r.["comment"] :?> ILiteralNode).Value }
         
         ]
+
+    let getGraphProperties schemaUri query = 
+        schemaUri |> withGraph (getProperties query)
