@@ -2,7 +2,7 @@
 namespace System
 open System.Reflection
 
-[<assembly: AssemblyTitleAttribute("RdfSharp.Runtime")>]
+[<assembly: AssemblyTitleAttribute("Iride")>]
 [<assembly: AssemblyProductAttribute("RdfSharp")>]
 [<assembly: AssemblyDescriptionAttribute("This library is for the .NET platform implementing RdfSharp.")>]
 [<assembly: AssemblyVersionAttribute("1.0.0")>]
@@ -10,7 +10,7 @@ open System.Reflection
 do ()
 
 module internal AssemblyVersionInformation =
-    let [<Literal>] AssemblyTitle = "RdfSharp.Runtime"
+    let [<Literal>] AssemblyTitle = "Iride"
     let [<Literal>] AssemblyProduct = "RdfSharp"
     let [<Literal>] AssemblyDescription = "This library is for the .NET platform implementing RdfSharp."
     let [<Literal>] AssemblyVersion = "1.0.0"

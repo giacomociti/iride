@@ -1,6 +1,6 @@
 #I "../src/Iride.DesignTime/bin/Release/netstandard2.0/"
-#I "../src/RdfSharp.Runtime/bin/Release/netstandard2.0/"
-#r "RdfSharp.Runtime.dll"
+#I "../src/Iride/bin/Release/netstandard2.0/"
+#r "Iride.dll"
 
 open RdfSharp
 

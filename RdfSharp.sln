@@ -7,7 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{63297B
 		paket.dependencies = paket.dependencies
 	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "RdfSharp.Runtime", "src\RdfSharp.Runtime\RdfSharp.Runtime.fsproj", "{1C4F03BB-15EA-4AE2-8E9C-98B41B8FDBD0}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Iride", "src\Iride\Iride.fsproj", "{1C4F03BB-15EA-4AE2-8E9C-98B41B8FDBD0}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Iride.DesignTime", "src\Iride.DesignTime\Iride.DesignTime.fsproj", "{E6656B67-2077-4434-93A7-372EFB08504E}"
 EndProject

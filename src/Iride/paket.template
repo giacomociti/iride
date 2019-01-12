@@ -15,13 +15,13 @@ summary
 description
     Generates .Net Uri properties for RDF properties in ontologies
 files
-    bin/Release/net45/RdfSharp.Runtime.* ==> lib/net45
-    bin/Release/netstandard2.0/RdfSharp.Runtime.* ==> lib/netstandard2.0
+    bin/Release/net45/Iride.* ==> lib/net45
+    bin/Release/netstandard2.0/Iride.* ==> lib/netstandard2.0
     bin/Release/typeproviders/fsharp41/netstandard2.0/*.dll ==> typeproviders/fsharp41/netstandard2.0
     bin/Release/typeproviders/fsharp41/netcoreapp2.0/*.dll ==> typeproviders/fsharp41/netcoreapp2.0
     bin/Release/typeproviders/fsharp41/net45/*.dll ==> typeproviders/fsharp41/net45
 references
-    RdfSharp.Runtime.dll
+    Iride.dll
 dependencies
   FSharp.Core >= LOCKEDVERSION
   dotNetRDF >= 2.1.0

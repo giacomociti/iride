@@ -17,4 +17,4 @@ Building:
 
     dotnet build -c release
 
-    .paket/paket.exe pack src/RdfSharp.Runtime --version 0.0.1
+    .paket/paket.exe pack src/Iride --version 0.0.1
