@@ -29,7 +29,10 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
                     propertyType = typeof<Uri>,
                     getterCode = (fun _ -> <@@ Uri uri @@>), 
                     isStatic = true)
-            providedProperty.AddXmlDoc property.Comment
+
+            sprintf "%s\n%s" uri property.Comment
+            |> providedProperty.AddXmlDoc
+            
             result.AddMember providedProperty
  
         asm.AddTypes [ result ]
@@ -43,10 +46,14 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("SparqlQuery", typeof<string>, Query.RdfProperties)
             ],
             fun typeName args -> createType typeName (string args.[0]) (string args.[1])  )
+
+        result.AddXmlDoc """<summary>Uri properties from IRIs in RDF ontologies.</summary>
+           <param name='RdfSchemaUri'>RDF ontology where to look for IRIs.</param>
+           <param name='SparqlQuery'>SPARQL query to extract IRIs with their label and comment.</param>
+         """
         result
 
-    do
-        this.AddNamespace(ns, [myParamType])
+    do this.AddNamespace(ns, [myParamType])
 
 
 [<TypeProviderAssembly>]
