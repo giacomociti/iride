@@ -6,6 +6,8 @@ owners
     Giacomo Citi
 projectUrl
     http://github.com/giacomociti/iride
+licenseUrl
+    http://github.com/giacomociti/iride/blob/master/license.txt    
 requireLicenseAcceptance
     false
 tags
