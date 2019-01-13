@@ -11,9 +11,9 @@ requireLicenseAcceptance
 tags
     F# fsharp typeproviders RDF
 summary
-    F# generative type provider for RDF properties
+    F# generative type provider for RDF IRIs
 description
-    Generates .Net Uri properties for RDF properties in ontologies
+    Generates static Uri properties for IRIs in RDF ontologies
 files
     bin/Release/net45/Iride.* ==> lib/net45
     bin/Release/netstandard2.0/Iride.* ==> lib/netstandard2.0
