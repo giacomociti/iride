@@ -1,8 +1,8 @@
 
-This is a simple F# type provider to create Uri properties
-from RDF properties in ontologies.
+This is a simple F# type provider to create static Uri properties
+from IRIs in RDF ontologies.
 
-    type Book = RdfPropertyProvider<"""https://schema.org/Book.ttl""">
+    type Book = UriProvider<"https://schema.org/Book.ttl">
 
     let a: System.Uri = Book.author
 

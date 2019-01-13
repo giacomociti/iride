@@ -37,7 +37,7 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
 
     let myParamType = 
         let result =
-            ProvidedTypeDefinition(asm, ns, "RdfPropertyProvider", Some typeof<obj>, isErased = false)
+            ProvidedTypeDefinition(asm, ns, "UriProvider", Some typeof<obj>, isErased = false)
         result.DefineStaticParameters([
                 ProvidedStaticParameter("RdfSchemaUri", typeof<string>)
                 ProvidedStaticParameter("SparqlQuery", typeof<string>, Query.RdfProperties)

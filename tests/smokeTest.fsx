@@ -4,11 +4,11 @@
 
 open Iride
 
-type Rdf = RdfPropertyProvider<"""http://www.w3.org/1999/02/22-rdf-syntax-ns""">
+type Rdf = UriProvider<"http://www.w3.org/1999/02/22-rdf-syntax-ns">
 
-type Rdfs = RdfPropertyProvider<"""http://www.w3.org/2000/01/rdf-schema""">
+type Rdfs = UriProvider<"http://www.w3.org/2000/01/rdf-schema">
 
-type Owl = RdfPropertyProvider<"""http://www.w3.org/2002/07/owl""", SparqlQuery = """
+type Owl = UriProvider<"""http://www.w3.org/2002/07/owl""", SparqlQuery = """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
@@ -19,7 +19,7 @@ type Owl = RdfPropertyProvider<"""http://www.w3.org/2002/07/owl""", SparqlQuery 
         }
         """>
 
-type Book = RdfPropertyProvider<"""https://schema.org/Book.ttl""">
+type Book = UriProvider<"https://schema.org/Book.ttl">
 
 Rdf.subject.Fragment
 Rdfs.label.Fragment
