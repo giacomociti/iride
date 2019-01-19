@@ -9,8 +9,10 @@ open Iride
 
 [<TypeProvider>]
 type BasicGenerativeProvider (config : TypeProviderConfig) as this =
-    inherit TypeProviderForNamespaces (config, assemblyReplacementMap=[("Iride.DesignTime", "Iride")])
-
+    inherit TypeProviderForNamespaces 
+        (config, 
+         assemblyReplacementMap = [("Iride.DesignTime", "Iride")],
+         addDefaultProbingLocation = true)
     let ns = "Iride"
     let asm = Assembly.GetExecutingAssembly()
 
