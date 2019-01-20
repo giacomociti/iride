@@ -45,12 +45,12 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
             ProvidedTypeDefinition(asm, ns, "UriProvider", Some typeof<obj>, isErased = false)
         result.DefineStaticParameters([
                 ProvidedStaticParameter("RdfSchemaUri", typeof<string>)
-                ProvidedStaticParameter("SparqlQuery", typeof<string>, Query.RdfProperties)
+                ProvidedStaticParameter("SparqlQuery", typeof<string>, Query.RdfResources)
             ],
             fun typeName args -> createType typeName (string args.[0]) (string args.[1])  )
 
         result.AddXmlDoc """<summary>Uri properties from IRIs in RDF ontologies.</summary>
-           <param name='RdfSchemaUri'>RDF ontology where to look for IRIs.</param>
+           <param name='RdfSchemaUri'>RDF vocabulary where to look for IRIs.</param>
            <param name='SparqlQuery'>SPARQL query to extract IRIs with their label and comment.</param>
          """
         result

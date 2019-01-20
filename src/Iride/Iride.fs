@@ -15,6 +15,17 @@ module CommonUris =
 module Query =
 
     [<Literal>]
+    let RdfResources = """
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+        SELECT ?uri ?label ?comment WHERE {
+          ?uri rdfs:label ?label ;
+               rdfs:comment ?comment .
+        }
+        """
+
+
+    [<Literal>]
     let RdfProperties = """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>

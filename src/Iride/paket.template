@@ -15,7 +15,7 @@ tags
 summary
     F# generative type provider for RDF IRIs
 description
-    Generates static Uri properties for IRIs in RDF ontologies
+    Generates Uri properties for IRIs in RDF vocabularies
 files
     bin/Release/net45/Iride.* ==> lib/net45
     bin/Release/netstandard2.0/Iride.* ==> lib/netstandard2.0

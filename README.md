@@ -1,6 +1,6 @@
 
-This is a simple F# type provider to create static Uri properties
-from IRIs in RDF ontologies.
+This is a simple F# type provider to create `System.Uri` properties
+from IRIs in RDF vocabularies.
 
     type Book = UriProvider<"https://schema.org/Book.ttl">
 
