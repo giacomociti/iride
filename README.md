@@ -6,12 +6,24 @@ from IRIs in RDF vocabularies.
 
     let a: System.Uri = Book.author
 
+The vocabulary can be either a local file or a web resource like in the example above.
+The list of IRIs for which a property is generated is obtained with the following SPARQL query:
 
-It has separate design-time and runtime assemblies.
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-Paket is used to acquire the type provider SDK and build the nuget package (you can remove this use of paket if you like)
+        SELECT ?uri ?label ?comment WHERE {
+          ?uri rdfs:label ?label ;
+               rdfs:comment ?comment .
+        }
 
-Building:
+You can provide your own SPARQL query to customize the set of properties.
+
+## Building
+The type provider has separate design-time and runtime assemblies.
+
+Paket is used to acquire the type provider SDK and build the nuget package.
+
+
 
     .paket/paket.exe update
 
