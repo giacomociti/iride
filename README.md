@@ -1,3 +1,4 @@
+[![NuGet Badge](https://buildstats.info/nuget/Iride)](https://www.nuget.org/packages/Iride)
 
 This is a simple F# type provider to create `System.Uri` properties
 from IRIs in RDF vocabularies.
