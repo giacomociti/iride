@@ -1,8 +1,7 @@
 namespace Iride
 
-open System
-
 module CommonUris =
+
     [<Literal>]
     let Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns"
 
@@ -23,7 +22,6 @@ module Query =
                rdfs:comment ?comment .
         }
         """
-
 
     [<Literal>]
     let RdfProperties = """
@@ -48,10 +46,7 @@ module Query =
         }
         """
 
-
-type UriFactory() = 
-    static member Create uri = Uri uri
-
+type internal IMarker = interface end
 
 // Put the TypeProviderAssemblyAttribute in the runtime DLL, pointing to the design-time DLL
 [<assembly:CompilerServices.TypeProviderAssembly("Iride.DesignTime.dll")>]

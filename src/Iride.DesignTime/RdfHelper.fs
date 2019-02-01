@@ -10,11 +10,6 @@ module RdfHelper =
     open VDS.RDF.Parsing
     open VDS.RDF.Query
         
-    let withGraph f rdfFile =
-        use graph = new Graph()
-        UriLoader.Load(graph, Uri rdfFile)
-        f graph
-
     let getProperties (query: string) (graph: IGraph) =
         let results = graph.ExecuteQuery query
         [
@@ -24,5 +19,10 @@ module RdfHelper =
                         Comment = (r.["comment"] :?> ILiteralNode).Value }
         ]
 
-    let getGraphProperties schemaUri query = 
-        schemaUri |> withGraph (getProperties query)
+    let getGraphProperties resolutionFolder schema query =
+        use graph = new Graph()
+        let path = IO.Path.Combine(resolutionFolder, schema)
+        if IO.File.Exists path
+        then FileLoader.Load(graph, path)
+        else UriLoader.Load(graph, Uri schema)
+        getProperties query graph

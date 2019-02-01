@@ -17,22 +17,22 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
     let asm = Assembly.GetExecutingAssembly()
 
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
-    do assert (typeof<Iride.UriFactory>.Assembly.GetName().Name = asm.GetName().Name)  
+    do assert (typeof<Iride.IMarker>.Assembly.GetName().Name = asm.GetName().Name)  
 
     let createType typeName (rdfSchemaUri: string) (sparqlQuery) =
         let asm = ProvidedAssembly()
         let result = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
         
-        for property in RdfHelper.getGraphProperties rdfSchemaUri sparqlQuery do
-            let uri = property.Uri.ToString()
+        for prop in RdfHelper.getGraphProperties config.ResolutionFolder rdfSchemaUri sparqlQuery do
+            let uri = prop.Uri.ToString()
             let providedProperty = 
                 ProvidedProperty(
-                    propertyName = property.Label, 
+                    propertyName = prop.Label, 
                     propertyType = typeof<Uri>,
                     getterCode = (fun _ -> <@@ Uri uri @@>), 
                     isStatic = true)
 
-            sprintf "%s\n%s" uri property.Comment
+            sprintf "%s\n%s" uri prop.Comment
             |> providedProperty.AddXmlDoc
             
             result.AddMember providedProperty
@@ -40,7 +40,7 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
         asm.AddTypes [ result ]
         result
 
-    let myParamType = 
+    let providerType = 
         let result =
             ProvidedTypeDefinition(asm, ns, "UriProvider", Some typeof<obj>, isErased = false)
         result.DefineStaticParameters([
@@ -49,13 +49,13 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
             ],
             fun typeName args -> createType typeName (string args.[0]) (string args.[1])  )
 
-        result.AddXmlDoc """<summary>Uri properties from IRIs in RDF ontologies.</summary>
+        result.AddXmlDoc """<summary>Uri properties from IRIs in RDF vocabularies.</summary>
            <param name='RdfSchemaUri'>RDF vocabulary where to look for IRIs.</param>
            <param name='SparqlQuery'>SPARQL query to extract IRIs with their label and comment.</param>
          """
         result
 
-    do this.AddNamespace(ns, [myParamType])
+    do this.AddNamespace(ns, [providerType])
 
 
 [<TypeProviderAssembly>]
