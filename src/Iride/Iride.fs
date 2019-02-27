@@ -29,9 +29,9 @@ module Query =
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
         SELECT ?uri ?label ?comment WHERE {
-          ?uri a rdf:Property ;
-               rdfs:label ?label ;
-               rdfs:comment ?comment .
+          ?uri a rdf:Property
+          OPTIONAL { ?uri rdfs:label ?label }
+          OPTIONAL { ?uri rdfs:comment ?comment }
         }
         """
 
@@ -40,9 +40,9 @@ module Query =
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
         SELECT ?uri ?label ?comment WHERE {
-          ?uri a rdfs:Class ;
-               rdfs:label ?label ;
-               rdfs:comment ?comment .
+          ?uri a rdfs:Class 
+          OPTIONAL { ?uri rdfs:label ?label }
+          OPTIONAL { ?uri rdfs:comment ?comment }
         }
         """
 

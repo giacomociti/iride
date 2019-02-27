@@ -31,10 +31,7 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
                     propertyType = typeof<Uri>,
                     getterCode = (fun _ -> <@@ Uri uri @@>), 
                     isStatic = true)
-
-            sprintf "%s\n%s" uri prop.Comment
-            |> providedProperty.AddXmlDoc
-            
+            providedProperty.AddXmlDoc prop.Comment
             result.AddMember providedProperty
  
         asm.AddTypes [ result ]

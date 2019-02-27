@@ -5,3 +5,11 @@
 :Foo a rdfs:Class ;
     rdfs:label "foo class" ;
     rdfs:comment "the foo class is cool" .
+
+:bar a rdf:Property ;
+    rdfs:label "bar property" .
+
+<http://example.org/baz> a rdf:Property ;
+	rdfs:comment "a property with no label" .
+
+<http://example.org/baz#frag> a rdf:Property .

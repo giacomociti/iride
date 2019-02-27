@@ -32,4 +32,20 @@ type FileVocab = UriProvider<"Vocab.ttl">
 [<Test>]
 let ``Can access vocabulary in local file`` () =    
    Assert.AreEqual("http://example.org/Foo", FileVocab.``foo class``.ToString())
+   
 
+type MyProps = UriProvider<"Vocab.ttl", """
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+    SELECT ?uri ?label WHERE {
+        ?uri a rdf:Property .
+        OPTIONAL { ?uri rdfs:label ?label }
+    }
+""">
+
+[<Test>]
+let ``Label fallback to frangment and then to last segment`` () =
+    Assert.AreEqual("http://example.org/bar", MyProps.``bar property``.ToString())
+    Assert.AreEqual("http://example.org/baz", MyProps.baz.ToString())
+    Assert.AreEqual("http://example.org/baz#frag", MyProps.frag.ToString())
