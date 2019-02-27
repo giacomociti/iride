@@ -49,3 +49,12 @@ let ``Label fallback to frangment and then to last segment`` () =
     Assert.AreEqual("http://example.org/bar", MyProps.``bar property``.ToString())
     Assert.AreEqual("http://example.org/baz", MyProps.baz.ToString())
     Assert.AreEqual("http://example.org/baz#frag", MyProps.frag.ToString())
+
+[<Test>]
+let ``Values are collected`` () =
+    let expected = [
+        MyProps.``bar property``
+        MyProps.baz
+        MyProps.frag ]
+    let values = MyProps.GetValues() |> List.ofArray
+    Assert.AreEqual(expected, values)
