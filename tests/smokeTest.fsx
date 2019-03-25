@@ -28,3 +28,12 @@ Rdfs.label.Fragment
 Owl.cardinality.Fragment
 Book.bookFormat.ToString()
 
+// type CMD = SparqlCommand<"""
+// SELECT ?uri ?label ?comment WHERE {
+//           ?uri a $t
+//         }
+// """>
+
+
+
+

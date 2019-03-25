@@ -2,5 +2,6 @@ File:ProvidedTypes.fsi
 File:ProvidedTypes.fs
 
 FSharp.Core
+dotNetRDF
 # put any package references here
 # System.Text.Encoding.CodePages framework: netstandard2.0,netcoreapp2.0

@@ -17,7 +17,7 @@ NUGET
       System.Threading.Thread (>= 4.3) - restriction: || (&& (== net45) (< net40) (>= netstandard1.4)) (&& (== net45) (< net40) (>= netstandard2.0)) (== netcoreapp2.0) (== netstandard2.0)
       VDS.Common (>= 1.10)
     FSharp.Core (4.3.4)
-    HtmlAgilityPack (1.9.2)
+    HtmlAgilityPack (1.11.1)
       System.Net.Http (>= 4.3.2) - restriction: || (&& (== net45) (< net40) (>= netstandard2.0)) (== netcoreapp2.0) (== netstandard2.0)
       System.Xml.XmlDocument (>= 4.3) - restriction: || (&& (== net45) (< net40) (>= netstandard1.3)) (&& (== net45) (< net40) (>= netstandard1.6)) (&& (== net45) (< net40) (>= netstandard2.0)) (== netcoreapp2.0) (== netstandard2.0)
       System.Xml.XPath (>= 4.3) - restriction: || (&& (== net45) (< net40) (>= netstandard1.3)) (&& (== net45) (< net40) (>= netstandard1.6)) (&& (== net45) (< net40) (>= netstandard2.0)) (== netcoreapp2.0) (== netstandard2.0)
@@ -326,8 +326,8 @@ NUGET
       System.Runtime.InteropServices (>= 4.3) - restriction: || (&& (== net45) (>= netstandard1.3)) (== netcoreapp2.0) (== netstandard2.0)
       System.Security.Cryptography.Primitives (>= 4.3) - restriction: || (&& (== net45) (>= netstandard1.3)) (== netcoreapp2.0) (== netstandard2.0)
       System.Text.Encoding (>= 4.3) - restriction: || (&& (== net45) (>= netstandard1.3)) (== netcoreapp2.0) (== netstandard2.0)
-    System.Security.Cryptography.OpenSsl (4.5) - restriction: || (&& (== net45) (< net40) (>= netstandard2.0)) (== netcoreapp2.0) (== netstandard2.0)
-      Microsoft.NETCore.Platforms (>= 2.0) - restriction: || (&& (== net45) (>= netcoreapp2.0)) (== netcoreapp2.0) (&& (== netstandard2.0) (>= netcoreapp2.0))
+    System.Security.Cryptography.OpenSsl (4.5.1) - restriction: || (&& (== net45) (< net40) (>= netstandard2.0)) (== netcoreapp2.0) (== netstandard2.0)
+      Microsoft.NETCore.Platforms (>= 2.1.2) - restriction: || (&& (== net45) (>= netcoreapp2.0)) (== netcoreapp2.0) (&& (== netstandard2.0) (>= netcoreapp2.0))
     System.Security.Cryptography.Primitives (4.3) - restriction: || (&& (== net45) (< net40) (>= netstandard2.0)) (== netcoreapp2.0) (== netstandard2.0)
       System.Diagnostics.Debug (>= 4.3) - restriction: || (&& (== net45) (>= netstandard1.3)) (== netcoreapp2.0) (== netstandard2.0)
       System.Globalization (>= 4.3) - restriction: || (&& (== net45) (>= netstandard1.3)) (== netcoreapp2.0) (== netstandard2.0)
@@ -449,8 +449,8 @@ NUGET
     VDS.Common (1.10)
 GITHUB
   remote: fsprojects/FSharp.TypeProviders.SDK
-    src/ProvidedTypes.fs (18459e8b23b44b389dc8f2b8fe444fedf2b47a8c)
-    src/ProvidedTypes.fsi (18459e8b23b44b389dc8f2b8fe444fedf2b47a8c)
+    src/ProvidedTypes.fs (8cc9f9f8ca9b934e1f9d37743bc792dccc91675c)
+    src/ProvidedTypes.fsi (8cc9f9f8ca9b934e1f9d37743bc792dccc91675c)
 GROUP Test
 RESTRICTION: || (== net461) (== netcoreapp2.0)
 NUGET
@@ -470,11 +470,11 @@ NUGET
       NUnit.Extension.NUnitV2ResultWriter (>= 3.5)
       NUnit.Extension.TeamCityEventListener (>= 1.0.2)
       NUnit.Extension.VSProjectLoader (>= 3.5)
-    NUnit.ConsoleRunner (3.9)
+    NUnit.ConsoleRunner (3.10)
     NUnit.Extension.NUnitProjectLoader (3.6)
     NUnit.Extension.NUnitV2Driver (3.7)
     NUnit.Extension.NUnitV2ResultWriter (3.6)
-    NUnit.Extension.TeamCityEventListener (1.0.5)
+    NUnit.Extension.TeamCityEventListener (1.0.6)
     NUnit.Extension.VSProjectLoader (3.8)
     NUnit3TestAdapter (3.7.0) - version_in_path: true
     System.IO (4.3) - restriction: || (&& (== net461) (>= netstandard1.6)) (== netcoreapp2.0)
