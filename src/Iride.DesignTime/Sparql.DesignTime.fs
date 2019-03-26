@@ -18,28 +18,22 @@ type BasicProvider (config : TypeProviderConfig) as this =
     let asm = Assembly.GetExecutingAssembly()
 
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
-    do assert (typeof<Iride.QueryRuntime>.Assembly.GetName().Name = asm.GetName().Name) 
-    //do assert (typeof<Iride.IMarker>.Assembly.GetName().Name = asm.GetName().Name)   
+    do assert (typeof<Iride.QueryRuntime>.Assembly.GetName().Name = asm.GetName().Name)    
 
     let createType typeName sparqlQuery =
-        let asm = ProvidedAssembly()
-        let result = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=true)
-        
+        let result = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>)
         let desc = getQueryDescriptor sparqlQuery
-
         let par = ProvidedParameter("storage", typeof<IQueryableStorage>)
         let ctor = ProvidedConstructor ([par], function 
             | [storage] -> <@@ QueryRuntime(%%storage, sparqlQuery, desc.parameterNames) :> obj @@>
             | _ -> failwith "Expected a single parameter")
 
         result.AddMember ctor
-
-        asm.AddTypes [ result ]
         result
 
     let providerType = 
         let result =
-            ProvidedTypeDefinition(asm, ns, "SparqlCommand", Some typeof<obj>, isErased=true)
+            ProvidedTypeDefinition(asm, ns, "SparqlCommand", Some typeof<obj>)
         let par = ProvidedStaticParameter("SparqlQuery", typeof<string>)
         result.DefineStaticParameters([par], fun typeName args -> 
             createType typeName (string args.[0]))
