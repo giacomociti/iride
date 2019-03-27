@@ -7,6 +7,7 @@ open ProviderImplementation.ProvidedTypes
 open Iride.SparqlHelper
 open Iride
 open VDS.RDF.Storage
+open VDS.RDF
 
 [<TypeProvider>]
 type BasicProvider (config : TypeProviderConfig) as this =
@@ -23,12 +24,48 @@ type BasicProvider (config : TypeProviderConfig) as this =
     let createType typeName sparqlQuery =
         let result = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>)
         let desc = getQueryDescriptor sparqlQuery
+        let parNames = desc.parameterNames
         let par = ProvidedParameter("storage", typeof<IQueryableStorage>)
         let ctor = ProvidedConstructor ([par], function 
-            | [storage] -> <@@ QueryRuntime(%%storage, sparqlQuery, desc.parameterNames) :> obj @@>
+            | [storage] -> 
+                <@@ QueryRuntime(%%storage, sparqlQuery, parNames) :> obj @@>
             | _ -> failwith "Expected a single parameter")
-
         result.AddMember ctor
+
+        let resultType =
+            match desc.resultType with
+            | ResultType.Boolean -> typeof<bool>
+            | ResultType.Graph -> typeof<IGraph>
+            | ResultType.Bindings (variables, optionalVariables) ->
+                let t = ProvidedTypeDefinition(asm, ns, "Result", Some typeof<obj>)
+                variables
+                |> List.map (fun v -> ProvidedProperty(v, typeof<obj>, getterCode = fun _ ->
+                    <@@ "todo" :> obj @@>))
+                |>  List.iter result.AddMember
+
+                optionalVariables
+                |> List.map (fun v -> ProvidedProperty(v, typeof<obj option>, getterCode = fun _ ->
+                    <@@ None @@>))
+                |>  List.iter result.AddMember
+                
+                result.AddMember t
+                t.MakeArrayType()
+            
+        let pars = desc.parameterNames |> List.map (fun x -> ProvidedParameter(x, typeof<INode>))            
+        let meth = ProvidedMethod("Run", pars, resultType, invokeCode = function
+            | this::pars ->
+
+                match desc.resultType with
+                | ResultType.Boolean ->
+                    // TODO Args
+                    <@@ ((%%this : obj) :?> QueryRuntime).Ask( [] ) @@>
+                | ResultType.Graph ->
+                    <@@ ((%%this : obj) :?> QueryRuntime).Construct( [] ) @@>
+                | ResultType.Bindings (vars, opts) ->
+                    <@@ ((%%this : obj) :?> QueryRuntime).Select( [] ) @@>
+            | _ -> failwith "unexpected parameters")
+        result.AddMember meth
+        
         result
 
     let providerType = 

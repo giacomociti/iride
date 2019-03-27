@@ -12,7 +12,7 @@ open System.IO
 type QueryRuntime(storage: IQueryableStorage, commandText, parameterNames) =
     let sps = SparqlParameterizedString(CommandText = commandText)
 
-    let getCommandText(parameterValues) =
+    let getCommandText(parameterValues: seq<INode>) =
         sps.ClearVariables()
         Seq.zip parameterNames parameterValues
         |> Seq.iter sps.SetVariable
