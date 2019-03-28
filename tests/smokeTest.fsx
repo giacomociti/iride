@@ -36,10 +36,14 @@ WHERE {
         }
 """>
 
-// open System
+open System
 open VDS.RDF
 open VDS.RDF.Storage
 let storage = new InMemoryManager()
+let nf = NodeFactory()
+let g = new Graph()
+g.Assert(nf.CreateUriNode(Uri ""), nf.CreateUriNode(Uri ""), nf.CreateLiteralNode(""))
+(storage :> IUpdateableStorage).LoadGraph(g, Uri "")
 
 let c = CMD(storage)
 let lit = NodeFactory().CreateLiteralNode("aa")

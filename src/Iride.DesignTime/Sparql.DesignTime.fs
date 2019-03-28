@@ -49,12 +49,16 @@ type BasicProvider (config : TypeProviderConfig) as this =
                 |> List.map (fun v -> ProvidedProperty(v, typeof<INode>, getterCode = function
                     | [this] -> <@@ ((%%this : obj) :?> SparqlResult).Item v @@>
                     | _ -> failwith "Expected a single parameter"))
-
                 |>  List.iter t.AddMember
 
                 optionalVariables
-                |> List.map (fun v -> ProvidedProperty(v, typeof<obj option>, getterCode = fun _ ->
-                    <@@ None @@>))
+                |> List.map (fun v -> ProvidedProperty(v, typeof<INode option>, getterCode = function
+                    | [this] -> 
+                        <@@ 
+                        let r = ((%%this : obj) :?> SparqlResult)
+                        if r.HasBoundValue v then Some (r.Item v) else None
+                        @@>
+                    | _ -> failwith "Expected a single parameter"))
                 |>  List.iter t.AddMember
                 
                 result.AddMember t
@@ -63,11 +67,12 @@ type BasicProvider (config : TypeProviderConfig) as this =
         let pars = desc.parameterNames |> List.map (fun x -> ProvidedParameter(x, typeof<INode>))            
         let meth = ProvidedMethod("Run", pars, resultType, invokeCode = function
             | this::pars ->
-
                 match desc.resultType with
                 | ResultType.Boolean ->
                     // TODO Args
-                    <@@ ((%%this : obj) :?> QueryRuntime).Ask( [] ) @@>
+                    <@@        
+                        ((%%this : obj) :?> QueryRuntime).Ask([  ] ) 
+                    @@>
                 | ResultType.Graph ->
                     <@@ ((%%this : obj) :?> QueryRuntime).Construct( [] ) @@>
                 | ResultType.Bindings (vars, opts) ->
