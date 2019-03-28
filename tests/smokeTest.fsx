@@ -44,4 +44,5 @@ let storage = new InMemoryManager()
 let c = CMD(storage)
 let lit = NodeFactory().CreateLiteralNode("aa")
 let x = c.Run(lit)
+x.[0].s
 

@@ -8,6 +8,7 @@ open Iride.SparqlHelper
 open Iride
 open VDS.RDF.Storage
 open VDS.RDF
+open VDS.RDF.Query
 
 [<TypeProvider>]
 type BasicProvider (config : TypeProviderConfig) as this =
@@ -38,15 +39,23 @@ type BasicProvider (config : TypeProviderConfig) as this =
             | ResultType.Graph -> typeof<IGraph>
             | ResultType.Bindings (variables, optionalVariables) ->
                 let t = ProvidedTypeDefinition(asm, ns, "Result", Some typeof<obj>)
+                let ctorParam = ProvidedParameter("result", typeof<SparqlResult>)
+                let ctor = ProvidedConstructor([ctorParam], invokeCode = function
+                    | [result] -> <@@  %%result  @@>
+                    | _ -> failwith "Expected a single parameter")
+                t.AddMember ctor
+
                 variables
-                |> List.map (fun v -> ProvidedProperty(v, typeof<obj>, getterCode = fun _ ->
-                    <@@ "todo" :> obj @@>))
-                |>  List.iter result.AddMember
+                |> List.map (fun v -> ProvidedProperty(v, typeof<INode>, getterCode = function
+                    | [this] -> <@@ ((%%this : obj) :?> SparqlResult).Item v @@>
+                    | _ -> failwith "Expected a single parameter"))
+
+                |>  List.iter t.AddMember
 
                 optionalVariables
                 |> List.map (fun v -> ProvidedProperty(v, typeof<obj option>, getterCode = fun _ ->
                     <@@ None @@>))
-                |>  List.iter result.AddMember
+                |>  List.iter t.AddMember
                 
                 result.AddMember t
                 t.MakeArrayType()
