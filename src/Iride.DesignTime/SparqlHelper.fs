@@ -1,12 +1,8 @@
 namespace Iride
 
-open System
 open System.IO
-open VDS.RDF.Parsing
-open VDS.RDF
 open VDS.RDF.Query
-open VDS.RDF.Storage
-open VDS.RDF.Query.Algebra
+open VDS.RDF.Parsing
 open VDS.RDF.Parsing.Tokens
 
 module SparqlHelper =
@@ -29,8 +25,8 @@ module SparqlHelper =
         commandText
         |> tokens
         |> variables
-        |> Seq.distinct
         |> Seq.filter (fun x -> x.[0] = '$')
+        |> Seq.distinct
 
     type ResultType = 
         | Boolean 
@@ -43,21 +39,21 @@ module SparqlHelper =
         resultType: ResultType
     }
 
-    let getQueryDescriptor (commandText: string) =
-        let query = SparqlQueryParser().ParseFromString(commandText)
-        let algebra = query.ToAlgebra()
-        let parameters = getParameters commandText
+    let getQueryDescriptor commandText =
+        let parameters = commandText |> getParameters |> List.ofSeq
         { 
             commandText = commandText
-            parameterNames = List.ofSeq parameters
+            parameterNames = parameters
             resultType =
+                let query = SparqlQueryParser().ParseFromString(commandText)
                 match query.QueryType with
                 | SparqlQueryType.Ask -> Boolean
                 | SparqlQueryType.Construct
                 | SparqlQueryType.Describe
                 | SparqlQueryType.DescribeAll -> Graph
                 | _ -> 
+                    let algebra = query.ToAlgebra()
                     let variables = algebra.FixedVariables |> Seq.except parameters
                     let optionalVariables = algebra.FloatingVariables |> Seq.except parameters
                     Bindings (List.ofSeq variables, List.ofSeq optionalVariables)
-        }        
+        }
