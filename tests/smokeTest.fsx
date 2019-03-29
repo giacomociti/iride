@@ -28,25 +28,22 @@ open Iride
 // Owl.cardinality.Fragment
 // Book.bookFormat.ToString()
 
+open VDS.RDF
+open VDS.RDF.Storage
+
+let storage = new InMemoryManager()
+storage.Update("""INSERT DATA 
+{ <http://www.example.com/s1> <http://www.example.com/p1> "aa"}
+""")
+let lit = NodeFactory().CreateLiteralNode("aa")
+
 type CMD = SparqlCommand<"""
 select ?s ?p
 #ask
-WHERE {
-          ?s ?p $o
-        }
+#construct {?s ?p ?o }
+WHERE { ?s ?p $o }
 """>
 
-open System
-open VDS.RDF
-open VDS.RDF.Storage
-let storage = new InMemoryManager()
-let nf = NodeFactory()
-let g = new Graph()
-g.Assert(nf.CreateUriNode(Uri ""), nf.CreateUriNode(Uri ""), nf.CreateLiteralNode(""))
-(storage :> IUpdateableStorage).LoadGraph(g, Uri "")
-
-let c = CMD(storage)
-let lit = NodeFactory().CreateLiteralNode("aa")
-let x = c.Run(lit)
-x.[0].s
-
+let cmd = CMD(storage)
+let x = cmd.Run(lit)
+printfn "%A" x

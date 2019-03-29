@@ -12,7 +12,7 @@ open System.IO
 type QueryRuntime(storage: IQueryableStorage, commandText, parameterNames) =
     let sps = SparqlParameterizedString(CommandText = commandText)
 
-    let getCommandText(parameterValues: seq<INode>) =
+    let getCommandText(parameterValues: INode array) =
         sps.ClearVariables()
         Seq.zip parameterNames parameterValues
         |> Seq.iter sps.SetVariable
@@ -28,7 +28,7 @@ type QueryRuntime(storage: IQueryableStorage, commandText, parameterNames) =
         (execute parameterValues) :?> IGraph
 
     member this.Select(parameterValues)  = 
-        ((execute parameterValues) :?> SparqlResultSet).Results
+        ((execute parameterValues) :?> SparqlResultSet).Results |> Array.ofSeq
 
 
 

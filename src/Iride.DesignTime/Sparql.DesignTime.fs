@@ -9,6 +9,7 @@ open Iride
 open VDS.RDF.Storage
 open VDS.RDF
 open VDS.RDF.Query
+open Microsoft.FSharp.Quotations
 
 [<TypeProvider>]
 type BasicProvider (config : TypeProviderConfig) as this =
@@ -67,16 +68,14 @@ type BasicProvider (config : TypeProviderConfig) as this =
         let pars = desc.parameterNames |> List.map (fun x -> ProvidedParameter(x, typeof<INode>))            
         let meth = ProvidedMethod("Run", pars, resultType, invokeCode = function
             | this::pars ->
+                let array = Expr.NewArray(typeof<INode>, pars)
                 match desc.resultType with
                 | ResultType.Boolean ->
-                    // TODO Args
-                    <@@        
-                        ((%%this : obj) :?> QueryRuntime).Ask([  ] ) 
-                    @@>
+                    <@@ ((%%this: obj) :?> QueryRuntime).Ask(%%array) @@>
                 | ResultType.Graph ->
-                    <@@ ((%%this : obj) :?> QueryRuntime).Construct( [] ) @@>
-                | ResultType.Bindings (vars, opts) ->
-                    <@@ ((%%this : obj) :?> QueryRuntime).Select( [] ) @@>
+                    <@@ ((%%this: obj) :?> QueryRuntime).Construct(%%array) @@>
+                | ResultType.Bindings _ ->
+                    <@@ ((%%this: obj) :?> QueryRuntime).Select(%%array) @@>
             | _ -> failwith "unexpected parameters")
         result.AddMember meth
         
