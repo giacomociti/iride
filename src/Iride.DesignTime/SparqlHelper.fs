@@ -15,18 +15,14 @@ module SparqlHelper =
             yield token
             token <- tokenizer.GetNextToken()
     }
-        
-    let variables tokens =
-        tokens
-        |> Seq.filter (fun (x: IToken) -> x.TokenType = Token.VARIABLE)
-        |> Seq.map (fun x -> x.Value)
 
-    let getParameters commandText =
+    let getParameterNames commandText =
         commandText
         |> tokens
-        |> variables
-        |> Seq.filter (fun x -> x.[0] = '$')
+        |> Seq.filter (fun x -> x.TokenType = Token.VARIABLE && x.Value.[0] = '$')
+        |> Seq.map (fun x -> x.Value.Substring 1)
         |> Seq.distinct
+        |> List.ofSeq
 
     type ResultType = 
         | Boolean 
@@ -40,10 +36,10 @@ module SparqlHelper =
     }
 
     let getQueryDescriptor commandText =
-        let parameters = commandText |> getParameters |> List.ofSeq
+        let parameterNames = getParameterNames commandText
         { 
             commandText = commandText
-            parameterNames = parameters
+            parameterNames = parameterNames
             resultType =
                 let query = SparqlQueryParser().ParseFromString(commandText)
                 match query.QueryType with
@@ -53,7 +49,7 @@ module SparqlHelper =
                 | SparqlQueryType.DescribeAll -> Graph
                 | _ -> 
                     let algebra = query.ToAlgebra()
-                    let variables = algebra.FixedVariables |> Seq.except parameters
-                    let optionalVariables = algebra.FloatingVariables |> Seq.except parameters
+                    let variables = algebra.FixedVariables |> Seq.except parameterNames
+                    let optionalVariables = algebra.FloatingVariables |> Seq.except parameterNames
                     Bindings (List.ofSeq variables, List.ofSeq optionalVariables)
         }
