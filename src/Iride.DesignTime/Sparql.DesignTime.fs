@@ -65,10 +65,24 @@ type BasicProvider (config : TypeProviderConfig) as this =
                 result.AddMember t
                 t.MakeArrayType()
             
-        let pars = desc.parameterNames |> List.map (fun x -> ProvidedParameter(x, typeof<INode>))            
+        let getType (parameter: string) =
+            if   parameter.StartsWith "u_" then typeof<System.Uri>
+            elif parameter.StartsWith "s_" then typeof<string>
+            elif parameter.StartsWith "i_" then typeof<int>
+            elif parameter.StartsWith "d_" then typeof<decimal>
+            elif parameter.StartsWith "t_" then typeof<System.DateTimeOffset>
+            else typeof<INode>
+
+        let pars =
+            desc.parameterNames 
+            |> List.map (fun x -> ProvidedParameter(x, getType x))
+                
         let meth = ProvidedMethod("Run", pars, resultType, invokeCode = function
             | this::pars ->
-                let array = Expr.NewArray(typeof<INode>, pars)
+                let converters = pars |> List.map (fun par ->
+                    let m = typeof<QueryRuntime>.GetMethod("ToNode", [| par.Type |])
+                    Expr.Call(m, [par]))
+                let array = Expr.NewArray(typeof<INode>, converters)
                 match desc.resultType with
                 | ResultType.Boolean ->
                     <@@ ((%%this: obj) :?> QueryRuntime).Ask(%%array) @@>

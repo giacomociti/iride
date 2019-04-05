@@ -53,3 +53,11 @@ let ``Can select`` () =
     let p = (result.p :?> IUriNode).Uri
     Assert.AreEqual(Uri "http://example.org/s", s)
     Assert.AreEqual(Uri "http://example.org/p", p)
+
+type AskString = SparqlCommand<"ASK WHERE {?s ?p $s_text}">
+
+[<Test>]
+let ``Can use typed parameters`` () =
+    let cmd = AskString(storage)
+    cmd.Run("bb") |> Assert.False
+    cmd.Run("aa") |> Assert.True
