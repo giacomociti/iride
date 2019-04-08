@@ -26,7 +26,7 @@ type BasicProvider (config : TypeProviderConfig) as this =
     let createType typeName sparqlQuery =
         let result = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>)
         let desc = getQueryDescriptor sparqlQuery
-        let parNames = desc.parameterNames
+        let parNames = desc.parameters |> List.map (fun x -> x.ParameterName)
         let par = ProvidedParameter("storage", typeof<IQueryableStorage>)
         let ctor = ProvidedConstructor ([par], function 
             | [storage] -> 
@@ -47,17 +47,20 @@ type BasicProvider (config : TypeProviderConfig) as this =
                 t.AddMember ctor
 
                 variables
-                |> List.map (fun v -> ProvidedProperty(v, typeof<INode>, getterCode = function
-                    | [this] -> <@@ ((%%this : obj) :?> SparqlResult).Item v @@>
+                |> List.map (fun v -> ProvidedProperty(v.VariableName, v.Type, getterCode = function
+                    | [this] ->
+                        let varName = v.VariableName
+                        <@@ ((%%this : obj) :?> SparqlResult).Item varName @@>
                     | _ -> failwith "Expected a single parameter"))
                 |>  List.iter t.AddMember
 
                 optionalVariables
-                |> List.map (fun v -> ProvidedProperty(v, typeof<INode option>, getterCode = function
-                    | [this] -> 
+                |> List.map (fun v -> ProvidedProperty(v.VariableName, typeof<INode option>, getterCode = function
+                    | [this] ->
+                        let varName = v.VariableName
                         <@@ 
                         let r = ((%%this : obj) :?> SparqlResult)
-                        if r.HasBoundValue v then Some (r.Item v) else None
+                        if r.HasBoundValue varName then Some (r.Item varName) else None
                         @@>
                     | _ -> failwith "Expected a single parameter"))
                 |>  List.iter t.AddMember
@@ -74,8 +77,8 @@ type BasicProvider (config : TypeProviderConfig) as this =
             else typeof<INode>
 
         let pars =
-            desc.parameterNames 
-            |> List.map (fun x -> ProvidedParameter(x, getType x))
+            desc.parameters 
+            |> List.map (fun x -> ProvidedParameter(x.ParameterName, x.Type))
                 
         let meth = ProvidedMethod("Run", pars, resultType, invokeCode = function
             | this::pars ->
