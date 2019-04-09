@@ -34,6 +34,14 @@ type BasicProvider (config : TypeProviderConfig) as this =
             | _ -> failwith "Expected a single parameter")
         result.AddMember ctor
 
+        let converter typ =
+            if typ = typeof<Uri> then typeof<QueryRuntime>.GetMethod "AsUri"
+            elif typ = typeof<string> then typeof<QueryRuntime>.GetMethod "AsString"
+            elif typ = typeof<int> then typeof<QueryRuntime>.GetMethod "AsInt"
+            elif typ = typeof<decimal> then typeof<QueryRuntime>.GetMethod "AsDecimal"
+            elif typ = typeof<DateTimeOffset> then typeof<QueryRuntime>.GetMethod "AsDateTimeOffset"
+            else typeof<QueryRuntime>.GetMethod "AsNode"
+
         let resultType =
             match desc.resultType with
             | ResultType.Boolean -> typeof<bool>
@@ -50,7 +58,8 @@ type BasicProvider (config : TypeProviderConfig) as this =
                 |> List.map (fun v -> ProvidedProperty(v.VariableName, v.Type, getterCode = function
                     | [this] ->
                         let varName = v.VariableName
-                        <@@ ((%%this : obj) :?> SparqlResult).Item varName @@>
+                        let node = <@@ ((%%this : obj) :?> SparqlResult).Item varName @@>
+                        Expr.Call(converter v.Type, [node])
                     | _ -> failwith "Expected a single parameter"))
                 |>  List.iter t.AddMember
 
@@ -67,14 +76,6 @@ type BasicProvider (config : TypeProviderConfig) as this =
                 
                 result.AddMember t
                 t.MakeArrayType()
-            
-        let getType (parameter: string) =
-            if   parameter.StartsWith "u_" then typeof<System.Uri>
-            elif parameter.StartsWith "s_" then typeof<string>
-            elif parameter.StartsWith "i_" then typeof<int>
-            elif parameter.StartsWith "d_" then typeof<decimal>
-            elif parameter.StartsWith "t_" then typeof<System.DateTimeOffset>
-            else typeof<INode>
 
         let pars =
             desc.parameters 
