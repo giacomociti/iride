@@ -61,3 +61,46 @@ let ``Can use typed parameters`` () =
     let cmd = AskString(storage)
     cmd.Run("bb") |> Assert.False
     cmd.Run("aa") |> Assert.True
+
+type SelectString = SparqlCommand<"SELECT * WHERE {?u_s ?u_p ?s_text}">
+[<Test>]
+let ``Can use typed results`` () =
+    let cmd = SelectString(storage)
+    let result = cmd.Run() |> Seq.exactlyOne
+    Assert.AreEqual(Uri "http://example.org/s", result.u_s)
+    Assert.AreEqual(Uri "http://example.org/p", result.u_p)
+    Assert.AreEqual("aa", result.s_text)
+
+type SelectInt = SparqlCommand<"SELECT * WHERE {?s ?p ?i_num}">
+[<Test>]
+let ``Can use typed int results`` () =
+    let storage = new InMemoryManager()
+    storage.Update """INSERT DATA {
+        <http://example.org/s> <http://example.org/p> 5
+    }"""
+    let cmd = SelectInt(storage)
+    let result = cmd.Run() |> Seq.exactlyOne
+    Assert.AreEqual(5, result.i_num)
+    
+type SelectDecimal = SparqlCommand<"SELECT * WHERE {?s ?p ?d_num}">
+[<Test>]
+let ``Can use typed decimal results`` () =
+    let storage = new InMemoryManager()
+    storage.Update """INSERT DATA {
+        <http://example.org/s> <http://example.org/p> 5.2
+    }"""
+    let cmd = SelectDecimal(storage)
+    let result = cmd.Run() |> Seq.exactlyOne
+    Assert.AreEqual(5.2, result.d_num)
+
+type SelectDate = SparqlCommand<"SELECT * WHERE {?s ?p ?t_date}">
+[<Test>]
+let ``Can use typed date results`` () =
+    let storage = new InMemoryManager()
+    storage.Update """INSERT DATA {
+        <http://example.org/s> <http://example.org/p> "2016-12-01T15:31:10-05:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>
+    }"""
+    let cmd = SelectDate(storage)
+    let result = cmd.Run() |> Seq.exactlyOne
+    let expected = DateTimeOffset(DateTime(2016, 12, 1, 15, 31, 10), TimeSpan.FromHours -5.)
+    Assert.AreEqual(expected, result.t_date)
