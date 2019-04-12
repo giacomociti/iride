@@ -1,12 +1,27 @@
 namespace Iride
 
 open System.IO
-open VDS.RDF
 open VDS.RDF.Query
 open VDS.RDF.Parsing
 open VDS.RDF.Parsing.Tokens
 
 module SparqlHelper =
+
+    type KnownDataType = Node | Uri | String | Integer | Decimal | DateTimeOffset
+
+    type Variable =  { VariableName:  string; Type: KnownDataType }
+    type Parameter = { ParameterName: string; Type: KnownDataType }
+
+    type ResultVariables = { 
+        Variables: Variable list
+        OptionalVariables: Variable list }
+
+    type QueryResult = Boolean | Graph | Bindings of ResultVariables
+
+    type QueryDescriptor = { 
+        commandText: string
+        input: Parameter list
+        output: QueryResult }
 
     let tokens commandText = seq {
         use reader = new StringReader (commandText)
@@ -17,18 +32,7 @@ module SparqlHelper =
             token <- tokenizer.GetNextToken()
     }
     
-    type Parameter = { ParameterName: string; Type: System.Type }
-    type Variable = { VariableName: string; Type: System.Type }
-
-    let getType (name: string) =
-        if   name.StartsWith "u_" then typeof<System.Uri>
-        elif name.StartsWith "s_" then typeof<string>
-        elif name.StartsWith "i_" then typeof<int>
-        elif name.StartsWith "d_" then typeof<decimal>
-        elif name.StartsWith "t_" then typeof<System.DateTimeOffset>
-        else typeof<INode>
-
-    let getParameterNames commandText =
+    let parameterNames commandText =
         let isParameter (token: string) = token.StartsWith "$"
         let getName (token: string) = token.Substring 1
         let pars, vars =
@@ -50,46 +54,40 @@ module SparqlHelper =
                 because variables prefixed with '$' are interpreted
                 as input parameters"
 
+    let knownDataType (name: string) =
+        match (name.Split '_').[0] with
+        | "u" -> Uri
+        | "s" -> String
+        | "i" -> Integer
+        | "d" -> Decimal
+        | "t" -> DateTimeOffset
+        | _   -> Node
 
+    let bindings (query: SparqlQuery) parameterNames =
+        let variables variableNames =
+            variableNames
+            |> Seq.except parameterNames
+            |> Seq.map (fun x -> { VariableName = x; Type = knownDataType x })
+            |> List.ofSeq
+        let algebra = query.ToAlgebra()
+        Bindings {
+            Variables = variables algebra.FixedVariables
+            OptionalVariables = variables algebra.FloatingVariables }            
 
-    type ResultType = 
-        | Boolean 
-        | Graph 
-        | Bindings of variables: Variable list * optionalVariables: Variable list
-
-    type QueryDescriptor = {
-        commandText: string
-        parameters: Parameter list
-        resultType: ResultType
-    }
-
-    let getQueryDescriptor commandText =
-        let pars = getParameterNames commandText
+    let queryDescriptor commandText =
+        let pars = parameterNames commandText
         { 
             commandText = commandText
-            parameters =
+            input =
                 pars
-                |> Seq.map (fun x -> {ParameterName = x; Type = getType x})
+                |> Seq.map (fun x -> { ParameterName = x; Type = knownDataType x })
                 |> List.ofSeq
-            resultType =
+            output =
                 let query = SparqlQueryParser().ParseFromString(commandText)
                 match query.QueryType with
                 | SparqlQueryType.Ask -> Boolean
                 | SparqlQueryType.Construct
                 | SparqlQueryType.Describe
                 | SparqlQueryType.DescribeAll -> Graph
-                | _ ->
-                    let algebra = query.ToAlgebra()
-                    let variables =
-                        algebra.FixedVariables
-                        |> Seq.except pars
-                        |> Seq.map (fun x -> {VariableName = x; Type = getType x})
-                        |> List.ofSeq
-                    let optionalVariables =
-                        algebra.FloatingVariables
-                        |> Seq.except pars
-                        |> Seq.map (fun x -> {VariableName = x; Type = getType x})
-                        |> List.ofSeq
-
-                    Bindings (variables, optionalVariables)
+                | _ -> bindings query pars
         }

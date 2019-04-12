@@ -21,12 +21,21 @@ type BasicProvider (config : TypeProviderConfig) as this =
     let asm = Assembly.GetExecutingAssembly()
 
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
-    do assert (typeof<Iride.QueryRuntime>.Assembly.GetName().Name = asm.GetName().Name)    
+    do assert (typeof<Iride.QueryRuntime>.Assembly.GetName().Name = asm.GetName().Name)
+
+    let getType = function
+        | Node -> typeof<INode>
+        | Uri -> typeof<System.Uri>
+        | String -> typeof<string>
+        | Integer -> typeof<int>
+        | Decimal -> typeof<decimal>
+        | DateTimeOffset -> typeof<System.DateTimeOffset>
+
 
     let createType typeName sparqlQuery =
         let result = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>)
-        let desc = getQueryDescriptor sparqlQuery
-        let parNames = desc.parameters |> List.map (fun x -> x.ParameterName)
+        let desc = queryDescriptor sparqlQuery
+        let parNames = desc.input |> List.map (fun x -> x.ParameterName)
         let par = ProvidedParameter("storage", typeof<IQueryableStorage>)
         let ctor = ProvidedConstructor ([par], function 
             | [storage] -> 
@@ -43,10 +52,10 @@ type BasicProvider (config : TypeProviderConfig) as this =
             else typeof<QueryRuntime>.GetMethod "AsNode"
 
         let resultType =
-            match desc.resultType with
-            | ResultType.Boolean -> typeof<bool>
-            | ResultType.Graph -> typeof<IGraph>
-            | ResultType.Bindings (variables, optionalVariables) ->
+            match desc.output with
+            | QueryResult.Boolean -> typeof<bool>
+            | QueryResult.Graph -> typeof<IGraph>
+            | QueryResult.Bindings b ->
                 let t = ProvidedTypeDefinition(asm, ns, "Result", Some typeof<obj>)
                 let ctorParam = ProvidedParameter("result", typeof<SparqlResult>)
                 let ctor = ProvidedConstructor([ctorParam], invokeCode = function
@@ -54,16 +63,16 @@ type BasicProvider (config : TypeProviderConfig) as this =
                     | _ -> failwith "Expected a single parameter")
                 t.AddMember ctor
 
-                variables
-                |> List.map (fun v -> ProvidedProperty(v.VariableName, v.Type, getterCode = function
+                b.Variables
+                |> List.map (fun v -> ProvidedProperty(v.VariableName, getType v.Type, getterCode = function
                     | [this] ->
                         let varName = v.VariableName
                         let node = <@@ ((%%this : obj) :?> SparqlResult).Item varName @@>
-                        Expr.Call(converter v.Type, [node])
+                        Expr.Call(converter (getType v.Type), [node])
                     | _ -> failwith "Expected a single parameter"))
                 |>  List.iter t.AddMember
 
-                optionalVariables
+                b.OptionalVariables
                 |> List.map (fun v -> ProvidedProperty(v.VariableName, typeof<INode option>, getterCode = function
                     | [this] ->
                         let varName = v.VariableName
@@ -78,8 +87,8 @@ type BasicProvider (config : TypeProviderConfig) as this =
                 t.MakeArrayType()
 
         let pars =
-            desc.parameters 
-            |> List.map (fun x -> ProvidedParameter(x.ParameterName, x.Type))
+            desc.input 
+            |> List.map (fun x -> ProvidedParameter(x.ParameterName, getType x.Type))
                 
         let meth = ProvidedMethod("Run", pars, resultType, invokeCode = function
             | this::pars ->
@@ -87,12 +96,12 @@ type BasicProvider (config : TypeProviderConfig) as this =
                     let m = typeof<QueryRuntime>.GetMethod("ToNode", [| par.Type |])
                     Expr.Call(m, [par]))
                 let array = Expr.NewArray(typeof<INode>, converters)
-                match desc.resultType with
-                | ResultType.Boolean ->
+                match desc.output with
+                | QueryResult.Boolean ->
                     <@@ ((%%this: obj) :?> QueryRuntime).Ask(%%array) @@>
-                | ResultType.Graph ->
+                | QueryResult.Graph ->
                     <@@ ((%%this: obj) :?> QueryRuntime).Construct(%%array) @@>
-                | ResultType.Bindings _ ->
+                | QueryResult.Bindings _ ->
                     <@@ ((%%this: obj) :?> QueryRuntime).Select(%%array) @@>
             | _ -> failwith "unexpected parameters")
         result.AddMember meth
