@@ -116,3 +116,25 @@ let ``Can use typed time results`` () =
     let result = cmd.Run() |> Seq.exactlyOne
     let expected = DateTimeOffset(DateTime(2016, 12, 1, 15, 31, 10), TimeSpan.FromHours -5.)
     Assert.AreEqual(expected, result.TIME)
+
+type SelectOptional = SparqlCommand<"""SELECT * WHERE  
+    { { ?s1 ?p1 "aa" } UNION { ?s2 ?p2 "bb" } }  """>
+[<Test>]
+let ``Can use optional results`` () =
+    let cmd = SelectOptional(storage)
+    let result = cmd.Run() |> Seq.exactlyOne
+    
+    Assert.IsTrue(result.s1.IsSome)
+    Assert.IsTrue(result.s2.IsNone)
+
+type SelectTypedOptional = SparqlCommand<"""SELECT * WHERE  
+    { { ?s1 <http://example.org/p> ?LIT_1 } UNION { ?s2 <http://example.org/q> ?LIT_2} }  """>
+[<Test>]
+let ``Can use optional typed results`` () =
+    let cmd = SelectTypedOptional(storage)
+    let result = cmd.Run() |> Seq.exactlyOne
+    
+    Assert.IsTrue(result.s1.IsSome)
+    Assert.IsTrue(result.s2.IsNone)
+    Assert.AreEqual(Some "aa", result.LIT_1)
+    Assert.AreEqual(None, result.LIT_2)

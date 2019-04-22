@@ -9,6 +9,7 @@ open Iride.SparqlHelper
 open VDS.RDF
 open VDS.RDF.Query
 open VDS.RDF.Storage
+open ProviderImplementation.ProvidedTypes
 
 [<TypeProvider>]
 type BasicProvider (config : TypeProviderConfig) as this =
@@ -68,14 +69,18 @@ type BasicProvider (config : TypeProviderConfig) as this =
         |>  List.iter resultType.AddMember
 
         bindings.OptionalVariables
-        |> List.map (fun v -> ProvidedProperty(v.VariableName, typeof<INode option>, getterCode = function
+        |> List.map (fun v ->
+            let typ = ProvidedTypeBuilder.MakeGenericType(typedefof<Option<_>>, [getType v.Type])
+            ProvidedProperty(v.VariableName, typ, getterCode = function
             | [this] ->
                 let varName = v.VariableName
-                <@@ 
-                let res = ((%%this : obj) :?> SparqlResult)
-                // TODO
-                if res.HasBoundValue varName then Some ((res.Item varName)) else None
-                @@>
+                let sparqlResult = <@ ((%%this : obj) :?> SparqlResult) @>
+                let hasValue = <@@ (%sparqlResult).HasBoundValue varName @@>
+                let node = <@@ (%sparqlResult).Item varName @@>
+                let typedValue = Expr.Call(converterMethod v.Type, [node])
+                let some = Expr.Call(typ.GetMethod "Some", [typedValue])
+                let none = Expr.PropertyGet(typ.GetProperty "None")
+                Expr.IfThenElse(hasValue, some, none)
             | _ -> failwith "Expected a single parameter"))
         |>  List.iter resultType.AddMember
         resultType
