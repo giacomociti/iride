@@ -22,6 +22,7 @@ type QueryRuntime(storage: IQueryableStorage, commandText, parameterNames) =
     static member ToNode(s: string) = NodeFactory().CreateLiteralNode(s) :> INode
     static member ToNode(n: int) = n.ToLiteral(NodeFactory()) :> INode
     static member ToNode(d: decimal) = d.ToLiteral(NodeFactory()) :> INode
+    static member ToNode(t: System.DateTime) : INode = t.ToLiteral(NodeFactory()) :> INode
     static member ToNode(t: System.DateTimeOffset) : INode = t.ToLiteral(NodeFactory()) :> INode
 
     static member AsNode(n: INode) = n
@@ -29,6 +30,7 @@ type QueryRuntime(storage: IQueryableStorage, commandText, parameterNames) =
     static member AsString(n: INode) = (n :?> ILiteralNode).Value
     static member AsInt(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToInt32
     static member AsDecimal(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToDecimal
+    static member AsDateTime(n: INode) = XmlConvert.ToDateTime((n :?> ILiteralNode).Value, "yyyy-MM-dd")
     static member AsDateTimeOffset(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToDateTimeOffset
     
 

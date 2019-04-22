@@ -7,7 +7,7 @@ open VDS.RDF.Parsing.Tokens
 
 module SparqlHelper =
 
-    type KnownDataType = Node | Uri | String | Integer | Decimal | DateTimeOffset
+    type KnownDataType = Node | Iri | Literal | Integer | Number | Date | Time
 
     type Variable =  { VariableName:  string; Type: KnownDataType }
     type Parameter = { ParameterName: string; Type: KnownDataType }
@@ -56,11 +56,12 @@ module SparqlHelper =
 
     let knownDataType (name: string) =
         match (name.Split '_').[0] with
-        | "u" -> Uri
-        | "s" -> String
-        | "i" -> Integer
-        | "d" -> Decimal
-        | "t" -> DateTimeOffset
+        | "IRI" -> Iri
+        | "LIT" -> Literal
+        | "INT" -> Integer
+        | "NUM" -> Number
+        | "DATE" -> Date
+        | "TIME" -> Time
         | _   -> Node
 
     let bindings (query: SparqlQuery) parameterNames =

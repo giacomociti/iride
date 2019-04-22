@@ -24,19 +24,21 @@ type BasicProvider (config : TypeProviderConfig) as this =
 
     let getType = function
         | Node -> typeof<INode>
-        | Uri -> typeof<System.Uri>
-        | String -> typeof<string>
+        | Iri -> typeof<System.Uri>
+        | Literal -> typeof<string>
         | Integer -> typeof<int>
-        | Decimal -> typeof<decimal>
-        | DateTimeOffset -> typeof<System.DateTimeOffset>
+        | Number -> typeof<decimal>
+        | Date -> typeof<System.DateTime>
+        | Time -> typeof<System.DateTimeOffset>
 
     let converterMethod = function
         | Node -> typeof<QueryRuntime>.GetMethod "AsNode"
-        | Uri -> typeof<QueryRuntime>.GetMethod "AsUri"
-        | String -> typeof<QueryRuntime>.GetMethod "AsString"
+        | Iri -> typeof<QueryRuntime>.GetMethod "AsUri"
+        | Literal -> typeof<QueryRuntime>.GetMethod "AsString"
         | Integer -> typeof<QueryRuntime>.GetMethod "AsInt"
-        | Decimal -> typeof<QueryRuntime>.GetMethod "AsDecimal"
-        | DateTimeOffset -> typeof<QueryRuntime>.GetMethod "AsDateTimeOffset"
+        | Number -> typeof<QueryRuntime>.GetMethod "AsDecimal"
+        | Date -> typeof<QueryRuntime>.GetMethod "AsDateTime"
+        | Time -> typeof<QueryRuntime>.GetMethod "AsDateTimeOffset"
 
     let createCtor (query: QueryDescriptor) =
         let parNames = query.input |> List.map (fun x -> x.ParameterName)
