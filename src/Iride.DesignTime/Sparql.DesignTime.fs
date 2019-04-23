@@ -11,6 +11,12 @@ open VDS.RDF.Query
 open VDS.RDF.Storage
 open ProviderImplementation.ProvidedTypes
 
+// TODO
+// add support for update commands
+// add vocabulary parameter to check that IRIs in the command text are from the vocabulary
+// load command text (and vocabulary) from file or embedded resource.
+
+
 [<TypeProvider>]
 type BasicProvider (config : TypeProviderConfig) as this =
     inherit TypeProviderForNamespaces 
@@ -131,8 +137,8 @@ type BasicProvider (config : TypeProviderConfig) as this =
         result.DefineStaticParameters([par], fun typeName args -> 
             createType typeName (string args.[0]))
 
-        result.AddXmlDoc """<summary>TODO.</summary>
-           <param name='SparqlQuery'>SPARQL parametrized query.</param>
+        result.AddXmlDoc """<summary>SPARQL parametrized query.</summary>
+           <param name='SparqlQuery'>Query text. Variables prefixed with '$' are treated as input parameters.</param>
          """
         result
 
