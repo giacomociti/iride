@@ -14,7 +14,7 @@ open ProviderImplementation.ProvidedTypes
 // TODO
 // add support for update commands
 // add vocabulary parameter to check that IRIs in the command text are from the vocabulary
-// load command text (and vocabulary) from file or embedded resource.
+// load text from embedded resource.
 
 
 [<TypeProvider>]
@@ -111,9 +111,16 @@ type BasicProvider (config : TypeProviderConfig) as this =
                     <@@ ((%%this: obj) :?> QueryRuntime).Select(%%array) @@>
             | _ -> failwith "unexpected parameters")
  
-    let createType typeName sparqlQuery =
+    let createType typeName (sparqlQuery: string) =
         let providedType = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>)
-        let query = queryDescriptor sparqlQuery
+
+        let queryText =
+            if sparqlQuery.EndsWith ".rq" 
+            then 
+                System.IO.Path.Combine(config.ResolutionFolder, sparqlQuery)
+                |> System.IO.File.ReadAllText
+            else sparqlQuery
+        let query = queryDescriptor queryText
 
         createCtor query
         |> providedType.AddMember
