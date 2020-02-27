@@ -12,11 +12,18 @@ module SparqlHelper =
     type Variable =  { VariableName:  string; Type: KnownDataType }
     type Parameter = { ParameterName: string; Type: KnownDataType }
 
+    type CommandDescriptor = {
+        commandText: string
+        input: Parameter list
+    }
+
     type ResultVariables = { 
         Variables: Variable list
         OptionalVariables: Variable list }
 
     type QueryResult = Boolean | Graph | Bindings of ResultVariables
+
+
 
     type QueryDescriptor = { 
         commandText: string
@@ -74,6 +81,16 @@ module SparqlHelper =
         Bindings {
             Variables = variables algebra.FixedVariables
             OptionalVariables = variables algebra.FloatingVariables }            
+
+    let commandDescriptor commandText =
+        let pars = parameterNames commandText
+        { 
+            commandText = commandText
+            input =
+                pars
+                |> Seq.map (fun x -> { ParameterName = x; Type = knownDataType x })
+                |> List.ofSeq
+        }
 
     let queryDescriptor commandText =
         let pars = parameterNames commandText

@@ -5,6 +5,24 @@ open VDS.RDF.Query
 open VDS.RDF.Storage
 open System.Xml
 
+type CommandRuntime(commandText, parameterNames) =
+    let sps = SparqlParameterizedString(CommandText = commandText)
+    static member NodeFactory = NodeFactory()
+
+    member __.GetCommandText(parameterValues: INode array) =
+        sps.ClearVariables()
+        Seq.zip parameterNames parameterValues
+        |> Seq.iter sps.SetVariable
+        sps.ToString()
+
+    static member ToNode(n: INode) = n
+    static member ToNode(u: System.Uri) = CommandRuntime.NodeFactory.CreateUriNode(u) :> INode
+    static member ToNode(s: string) = s.ToLiteral(CommandRuntime.NodeFactory) :> INode
+    static member ToNode(n: int) = n.ToLiteral(CommandRuntime.NodeFactory) :> INode
+    static member ToNode(d: decimal) = d.ToLiteral(CommandRuntime.NodeFactory) :> INode
+    static member ToNode(t: System.DateTime) : INode = t.ToLiteral(CommandRuntime.NodeFactory) :> INode
+    static member ToNode(t: System.DateTimeOffset) : INode = t.ToLiteral(CommandRuntime.NodeFactory) :> INode
+
 type QueryRuntime(storage: IQueryableStorage, commandText, parameterNames) =
     let sps = SparqlParameterizedString(CommandText = commandText)
 
