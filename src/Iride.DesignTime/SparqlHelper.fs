@@ -12,18 +12,11 @@ module SparqlHelper =
     type Variable =  { VariableName:  string; Type: KnownDataType }
     type Parameter = { ParameterName: string; Type: KnownDataType }
 
-    type CommandDescriptor = {
-        commandText: string
-        input: Parameter list
-    }
-
     type ResultVariables = { 
         Variables: Variable list
         OptionalVariables: Variable list }
 
     type QueryResult = Boolean | Graph | Bindings of ResultVariables
-
-
 
     type QueryDescriptor = { 
         commandText: string
@@ -82,24 +75,17 @@ module SparqlHelper =
             Variables = variables algebra.FixedVariables
             OptionalVariables = variables algebra.FloatingVariables }            
 
-    let commandDescriptor commandText =
-        let pars = parameterNames commandText
-        { 
-            commandText = commandText
-            input =
-                pars
-                |> Seq.map (fun x -> { ParameterName = x; Type = knownDataType x })
-                |> List.ofSeq
-        }
+    let parameters parameterNames =
+        parameterNames
+        |> Seq.map (fun x -> { ParameterName = x; Type = knownDataType x })
+        |> List.ofSeq
+
 
     let queryDescriptor commandText =
-        let pars = parameterNames commandText
+        let names = parameterNames commandText        
         { 
             commandText = commandText
-            input =
-                pars
-                |> Seq.map (fun x -> { ParameterName = x; Type = knownDataType x })
-                |> List.ofSeq
+            input = parameters names
             output =
                 let query = SparqlQueryParser().ParseFromString(commandText)
                 match query.QueryType with
@@ -107,5 +93,5 @@ module SparqlHelper =
                 | SparqlQueryType.Construct
                 | SparqlQueryType.Describe
                 | SparqlQueryType.DescribeAll -> Graph
-                | _ -> bindings query pars
+                | _ -> bindings query names
         }
