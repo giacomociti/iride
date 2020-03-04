@@ -1,6 +1,6 @@
 [![NuGet Badge](https://buildstats.info/nuget/Iride)](https://www.nuget.org/packages/Iride)
 
-This library contains two F# type providers built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
+This library contains F# type providers built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
 
 ## UriProvider
 
@@ -25,21 +25,21 @@ The list of IRIs for which a property is generated is obtained with the followin
 
 You can provide your own SPARQL query to customize the set of properties.
 
-## SparqlCommand
-_SparqlCommand_ provides some type safety around SPARQL queries, in the same vein of [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
+## SparqlParametrizedQuery
+_SparqlParametrizedQuery_ provides some type safety around SPARQL queries, in the same vein of [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
 
 ```fs
-type CMD = SparqlCommand<"SELECT * WHERE { ?s ?IRI_p $INT }">
-let storage = new InMemoryManager()
-// ...
-let cmd = CMD(storage)
+type Q = SparqlParametrizedQuery<"SELECT * WHERE { ?s ?IRI_p $INT }">
 
-let results = cmd.Run(INT = 42)
+let exec: string -> SparqlResultSet = 
+    failwith "Use your favourite SPARQL client"
 
-for result in results do
+let query = Q.GetText(INT=42)
+for r in exec(query) do
+    let result = Q.Result(r)
     let subject: VDS.RDF.INode = result.s 
     let predicate: System.Uri = result.IRI_p
-    // ...
+    // ....
 ```
 
 In SPARQL, output variables start with either '?' or '$', but in practice only '?' is used.
@@ -48,6 +48,24 @@ Hence this library hijacks the prefix '$' to indicate input parameters.
 Furthermore, upper case data type hints (e.g. IRI, INT) instruct the type provider to
 assign types to parameters and variables. Notice however that triple stores
 may return unparseable values due to the schemaless nature of RDF.
+
+
+
+## SparqlParametrizedCommand
+_SparqlParametrizedCommand_ behaves like _SparqlParametrizedQuery_ except that it lacks results.
+
+```fs
+type Cmd = SparqlParametrizedCommand<"""
+    INSERT DATA {$IRI_person <http://example.org/age> $INT_age}
+""">
+
+Cmd.GetText(
+    IRI_person = System.Uri "http://example.org/p1",
+    INT_age = 25)
+|> printfn "%s"
+// INSERT DATA {<http://example.org/p1> <http://example.org/age> 25 }
+```
+
 
 ## Building
 The type provider has separate design-time and runtime assemblies.
