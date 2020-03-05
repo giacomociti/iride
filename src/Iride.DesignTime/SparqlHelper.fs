@@ -95,3 +95,28 @@ module SparqlHelper =
                 | SparqlQueryType.DescribeAll -> Graph
                 | _ -> bindings query names
         }
+
+    let isUri token = 
+        token = Token.URI ||
+        token = Token.QNAME
+
+    let check (nsMap: VDS.RDF.NamespaceMapper) allowedUris (sparql: string) =
+        let ns = [for p in nsMap.Prefixes -> (nsMap.GetNamespaceUri p).AbsoluteUri] |> Set.ofList
+        [
+            for token in tokens sparql do
+                match token.TokenType with
+                | Token.URI ->
+                    if ns.Contains token.Value |> not 
+                    then
+                        if allowedUris |> List.contains token.Value |> not 
+                        then yield token.Value
+                | Token.QNAME ->
+                    match token.Value.Split ':' with
+                    | [| prefix; x |] -> 
+                        let nsUri = nsMap.GetNamespaceUri prefix
+                        let absolute = System.Uri(nsUri, x).AbsoluteUri
+                        if allowedUris |> List.contains absolute  |> not 
+                        then yield token.Value
+                    | _ -> ()
+                | _ -> ()
+        ]

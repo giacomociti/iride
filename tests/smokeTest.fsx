@@ -9,21 +9,66 @@ open VDS.RDF
 open VDS.RDF.Query
 open VDS.RDF.Storage
 
+type Q = SparqlParametrizedQuery<"SELECT * WHERE { ?s ?IRI_p $INT }">
+
+let exec: string -> SparqlResultSet = 
+    failwith "Use your favourite SPARQL client"
+
+let query = Q.GetText(INT=42)
+for r in exec(query) do
+    let result = Q.Result(r)
+    let subject: VDS.RDF.INode = result.s 
+    let predicate: System.Uri = result.IRI_p
+    // ....
+    
+    printfn ""
+
+for result in Q.GetText(INT=42) |> exec |> Seq.map Q.Result do
+    let subject: VDS.RDF.INode = result.s 
+    let predicate: System.Uri = result.IRI_p
+    // ...
+
+
+
+
+
+let rs: SparqlResultSet = ...
+//let results = cmd.Run(INT = 42)
+
+for result in results do
+    let subject: VDS.RDF.INode = result.s 
+    let predicate: System.Uri = result.IRI_p
+    // ...
+
+type Cmd = SparqlParametrizedCommand<"""
+    INSERT DATA {$IRI_person <http://example.org/age> $INT_age}
+""">
+
+Cmd.GetText(
+    IRI_person = System.Uri "http://example.org/p1",
+    INT_age = 25)
+|> printfn "%s"
+// INSERT DATA {<http://example.org/p1> <http://example.org/age> 25 }
+
 let lit = NodeFactory().CreateLiteralNode("aa")
 
 type CMD = SparqlParametrizedCommand<"""
-insert {?s ?p $o }
+insert {?s <http://example.org/bar> $o }
 WHERE { ?s ?p $o }
-""">
+""", RdfSchema = """C:\Repos\oss\iride\tests\Iride.Tests\vocab.ttl""", SchemaQuery = """
+     select ?uri where {?uri a ?x}""">
 
 //let cmd = CMD()
 let x = CMD.GetText(lit)
 printfn "%A" x
 
 type Q = SparqlParametrizedQuery<"""
-select ?s ?p
-WHERE { optional { ?s ?p $o }}
-""">
+    prefix : <http://example.org/>
+    select ?s ?p
+    WHERE { optional { ?s :Foo $o }}
+    """, RdfSchema = """C:\Repos\oss\iride\tests\Iride.Tests\vocab.ttl""", SchemaQuery = """
+     select ?uri where {?uri a ?x}
+    """>
 
 let text = Q.GetText(lit)
 

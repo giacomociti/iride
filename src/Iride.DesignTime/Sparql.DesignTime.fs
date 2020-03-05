@@ -10,6 +10,7 @@ open VDS.RDF
 open VDS.RDF.Query
 open VDS.RDF.Storage
 open ProviderImplementation.ProvidedTypes
+open VDS.RDF.Parsing
 
 module Helper =
     let commandText resolutionFolder (sparqlCommand: string) =
@@ -59,11 +60,23 @@ type BasicCommandProvider (config : TypeProviderConfig) as this =
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
     do assert (typeof<Iride.CommandRuntime>.Assembly.GetName().Name = asm.GetName().Name)
     
-    let createType typeName (sparqlCommand: string) =
+    let checkSchema (queryText: string) uris =
+        let ns = SparqlUpdateParser().ParseFromString(queryText).NamespaceMap
+        let errors = SparqlHelper.check ns uris queryText
+        if errors.Length > 0 then failwithf "Unknown Uris: %A\n Allowed: %A" errors uris
+
+    let createType typeName (sparqlCommand: string) rdfSchema schemaQuery =
         let asm = ProvidedAssembly()
         let providedType = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
 
         let commandText = Helper.commandText config.ResolutionFolder sparqlCommand
+
+        if rdfSchema <> "" then
+            schemaQuery
+            |> Iride.RdfHelper.getGraphProperties config.ResolutionFolder rdfSchema 
+            |> List.map (fun x -> x.Uri.AbsoluteUri)
+            |> checkSchema commandText
+
         let names = parameterNames commandText
         Helper.createTextMethod commandText (parameters names)
         |> providedType.AddMember
@@ -74,12 +87,17 @@ type BasicCommandProvider (config : TypeProviderConfig) as this =
     let providerType = 
         let result =
             ProvidedTypeDefinition(asm, ns, "SparqlParametrizedCommand", Some typeof<obj>, isErased = false)
-        let par = ProvidedStaticParameter("CommandText", typeof<string>)
-        result.DefineStaticParameters([par], fun typeName args -> 
-            createType typeName (string args.[0]))
+        let commandText = ProvidedStaticParameter("CommandText", typeof<string>)
+        let rdfSchema = ProvidedStaticParameter("RdfSchema", typeof<string>, parameterDefaultValue = "")
+        let schemaQuery = ProvidedStaticParameter("SchemaQuery", typeof<string>, parameterDefaultValue = Query.RdfResources)
+
+        result.DefineStaticParameters([commandText; rdfSchema; schemaQuery], fun typeName args -> 
+            createType typeName (string args.[0]) (string args.[1]) (string args.[2]))
 
         result.AddXmlDoc """<summary>SPARQL parametrized command.</summary>
            <param name='CommandText'>Command text. Variables prefixed with '$' are treated as input parameters.</param>
+           <param name='RdfSchema'>RDF vocabulary where to look for IRIs.</param>
+           <param name='SchemaQuery'>SPARQL query to extract the vocabulary.</param>
          """
         result
 
@@ -149,13 +167,22 @@ type BasicQueryProvider (config : TypeProviderConfig) as this =
         |>  List.iter resultType.AddMember
         resultType
 
+    let checkSchema (queryText: string) uris =
+        let ns = SparqlQueryParser().ParseFromString(queryText).NamespaceMap
+        let errors = SparqlHelper.check ns uris queryText
+        if errors.Length > 0 then failwithf "Unknown Uris: %A\n Allowed: %A" errors uris
 
-
-    let createType typeName (sparqlQuery: string) =
+    let createType typeName (sparqlQuery: string) rdfSchema schemaQuery =
         let asm = ProvidedAssembly()
         let providedType = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased = false)
         
-        let queryText = Helper.commandText config.ResolutionFolder sparqlQuery            
+        let queryText = Helper.commandText config.ResolutionFolder sparqlQuery
+        if rdfSchema <> "" then
+            schemaQuery
+            |> Iride.RdfHelper.getGraphProperties config.ResolutionFolder rdfSchema 
+            |> List.map (fun x -> x.Uri.AbsoluteUri)
+            |> checkSchema queryText
+
         let query = queryDescriptor queryText
 
         match query.output with
@@ -173,12 +200,16 @@ type BasicQueryProvider (config : TypeProviderConfig) as this =
     let providerType = 
         let result =
             ProvidedTypeDefinition(asm, ns, "SparqlParametrizedQuery", Some typeof<obj>, isErased = false)
-        let par = ProvidedStaticParameter("QueryText", typeof<string>)
-        result.DefineStaticParameters([par], fun typeName args -> 
-            createType typeName (string args.[0]))
+        let queryText = ProvidedStaticParameter("QueryText", typeof<string>)
+        let rdfSchema = ProvidedStaticParameter("RdfSchema", typeof<string>, parameterDefaultValue = "")
+        let schemaQuery = ProvidedStaticParameter("SchemaQuery", typeof<string>, parameterDefaultValue = Query.RdfResources)
+        result.DefineStaticParameters([queryText; rdfSchema; schemaQuery], fun typeName args -> 
+            createType typeName (string args.[0]) (string args.[1]) (string args.[2]))
 
         result.AddXmlDoc """<summary>SPARQL parametrized query.</summary>
            <param name='QueryText'>Query text. Variables prefixed with '$' are treated as input parameters.</param>
+           <param name='RdfSchema'>RDF vocabulary where to look for IRIs.</param>
+           <param name='SchemaQuery'>SPARQL query to extract the vocabulary.</param>
          """
         result
 
