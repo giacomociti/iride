@@ -13,10 +13,10 @@ requireLicenseAcceptance
 tags
     F# fsharp typeproviders RDF SPARQL
 summary
-    F# type providers for SPARQL queries and RDF IRIs
+    F# type providers for SPARQL and RDF IRIs
 description
     UriProvider generates Uri properties for IRIs in RDF vocabularies.
-    SparqlCommand provides some type safety for SPARQL queries.
+    SparqlParametrizedCommand and SparqlParametrizedQuery provide some type safety for SPARQL.
 files
     bin/Release/net45/Iride.* ==> lib/net45
     bin/Release/netstandard2.0/Iride.* ==> lib/netstandard2.0
