@@ -5,6 +5,7 @@ open VDS.RDF
 open VDS.RDF.Storage
 open Iride
 open System
+open VDS.RDF.Query
 
 let nodeFactory = NodeFactory()
 let literal = nodeFactory.CreateLiteralNode
@@ -16,124 +17,107 @@ let storage =
     }"""
     inMemoryManager :> IQueryableStorage
 
+let runSelect (storage: IQueryableStorage) sparql =
+    (storage.Query sparql) :?> SparqlResultSet
 
-type Ask = SparqlCommand<"ASK WHERE {?s ?p $o}">
+type Ask = SparqlParametrizedQuery<"ASK WHERE {?s ?p $o}">
 
 [<Test>]
 let ``Can ask`` () =
-    let cmd = Ask(storage)
-    cmd.Run(literal "bb") |> Assert.False
-    cmd.Run(literal "aa") |> Assert.True
+    let actual = Ask.GetText(literal "aa")
+    Assert.AreEqual("""ASK WHERE {?s ?p "aa"}""", actual)
+    
 
-type Construct = SparqlCommand<"CONSTRUCT {?s ?p $o} WHERE {?s ?p $o}">
+type Construct = SparqlParametrizedQuery<"CONSTRUCT {?s ?p $o} WHERE {?s ?p $o}">
 
 [<Test>]
 let ``Can constuct`` () =
-    let cmd = Construct(storage)
-    cmd.Run(literal "bb").IsEmpty |> Assert.True
-    
-    let graph = cmd.Run(literal "aa")
-    graph.IsEmpty |> Assert.False
-    let triple = graph.Triples |> Seq.exactlyOne
-    let s = (triple.Subject :?> IUriNode).Uri
-    let p = (triple.Predicate :?> IUriNode).Uri
-    let o = (triple.Object :?> ILiteralNode).Value
-    Assert.AreEqual(Uri "http://example.org/s", s)
-    Assert.AreEqual(Uri "http://example.org/p", p)
-    Assert.AreEqual("aa", o)
+    let actual = Construct.GetText(literal "aa")
+    Assert.AreEqual("""CONSTRUCT {?s ?p "aa"} WHERE {?s ?p "aa"}""", actual)
 
 
-type Select = SparqlCommand<"SELECT * WHERE {?s ?p $o}">
+type Select = SparqlParametrizedQuery<"SELECT * WHERE {?s ?p $o}">
 
 [<Test>]
 let ``Can select`` () =
-    let cmd = Select(storage)
-    let result = cmd.Run(literal "aa") |> Seq.exactlyOne
-    let s = (result.s :?> IUriNode).Uri
-    let p = (result.p :?> IUriNode).Uri
-    Assert.AreEqual(Uri "http://example.org/s", s)
-    Assert.AreEqual(Uri "http://example.org/p", p)
+    let actual = Select.GetText(literal "aa")
+    Assert.AreEqual("""SELECT * WHERE {?s ?p "aa"}""", actual)
+    let result = runSelect storage actual |> Seq.exactlyOne |> Select.Result
+    Assert.AreEqual(Uri "http://example.org/s", (result.s :?> IUriNode).Uri)
+    Assert.AreEqual(Uri "http://example.org/p", (result.p :?> IUriNode).Uri)
+    
 
-type AskString = SparqlCommand<"ASK WHERE {?s ?p $LIT}">
+type AskString = SparqlParametrizedQuery<"ASK WHERE {?s ?p $LIT}">
 
 [<Test>]
 let ``Can use typed parameters`` () =
-    let cmd = AskString(storage)
-    cmd.Run("bb") |> Assert.False
-    cmd.Run("aa") |> Assert.True
+    let actual = AskString.GetText("aa")
+    Assert.AreEqual("""ASK WHERE {?s ?p "aa"^^<http://www.w3.org/2001/XMLSchema#string>}""", actual)
 
-type SelectString = SparqlCommand<"SELECT * WHERE {?IRI_s ?IRI_p ?LIT}">
+
+type SelectString = SparqlParametrizedQuery<"SELECT * WHERE {?IRI_s ?IRI_p ?LIT}">
 [<Test>]
 let ``Can use typed results`` () =
-    let cmd = SelectString(storage)
-    let result = cmd.Run() |> Seq.exactlyOne
+    let result = SelectString.GetText() |> runSelect storage |> Seq.exactlyOne |> SelectString.Result
     Assert.AreEqual(Uri "http://example.org/s", result.IRI_s)
     Assert.AreEqual(Uri "http://example.org/p", result.IRI_p)
     Assert.AreEqual("aa", result.LIT)
 
-type SelectInt = SparqlCommand<"SELECT * WHERE {?s ?p ?INT}">
+type SelectInt = SparqlParametrizedQuery<"SELECT * WHERE {?s ?p ?INT}">
 [<Test>]
 let ``Can use typed int results`` () =
     let storage = new InMemoryManager()
     storage.Update """INSERT DATA {
         <http://example.org/s> <http://example.org/p> 5
     }"""
-    let cmd = SelectInt(storage)
-    let result = cmd.Run() |> Seq.exactlyOne
+    let result = SelectInt.GetText() |> runSelect storage |> Seq.exactlyOne |> SelectInt.Result
     Assert.AreEqual(5, result.INT)
     
-type SelectDecimal = SparqlCommand<"SELECT * WHERE {?s ?p ?NUM}">
+type SelectDecimal = SparqlParametrizedQuery<"SELECT * WHERE {?s ?p ?NUM}">
 [<Test>]
 let ``Can use typed decimal results`` () =
     let storage = new InMemoryManager()
     storage.Update """INSERT DATA {
         <http://example.org/s> <http://example.org/p> 5.2
     }"""
-    let cmd = SelectDecimal(storage)
-    let result = cmd.Run() |> Seq.exactlyOne
+    let result = SelectDecimal.GetText() |> runSelect storage |> Seq.exactlyOne |> SelectDecimal.Result
     Assert.AreEqual(5.2, result.NUM)
 
-type SelectDate = SparqlCommand<"SELECT * WHERE {?s ?p ?DATE}">
+type SelectDate = SparqlParametrizedQuery<"SELECT * WHERE {?s ?p ?DATE}">
 [<Test>]
 let ``Can use typed date results`` () =
     let storage = new InMemoryManager()
     storage.Update """INSERT DATA {
         <http://example.org/s> <http://example.org/p> "2016-12-01"^^<http://www.w3.org/2001/XMLSchema#date>
     }"""
-    let cmd = SelectDate(storage)
-    let result = cmd.Run() |> Seq.exactlyOne
+    let result = SelectDate.GetText() |> runSelect storage |> Seq.exactlyOne |> SelectDate.Result
     let expected = DateTime(2016, 12, 1)
     Assert.AreEqual(expected, result.DATE)
 
-type SelectTime = SparqlCommand<"SELECT * WHERE {?s ?p ?TIME}">
+type SelectTime = SparqlParametrizedQuery<"SELECT * WHERE {?s ?p ?TIME}">
 [<Test>]
 let ``Can use typed time results`` () =
     let storage = new InMemoryManager()
     storage.Update """INSERT DATA {
         <http://example.org/s> <http://example.org/p> "2016-12-01T15:31:10-05:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>
     }"""
-    let cmd = SelectTime(storage)
-    let result = cmd.Run() |> Seq.exactlyOne
+    let result = SelectTime.GetText() |> runSelect storage |> Seq.exactlyOne |> SelectTime.Result
     let expected = DateTimeOffset(DateTime(2016, 12, 1, 15, 31, 10), TimeSpan.FromHours -5.)
     Assert.AreEqual(expected, result.TIME)
 
-type SelectOptional = SparqlCommand<"""SELECT * WHERE  
+type SelectOptional = SparqlParametrizedQuery<"""SELECT * WHERE  
     { { ?s1 ?p1 "aa" } UNION { ?s2 ?p2 "bb" } }  """>
 [<Test>]
 let ``Can use optional results`` () =
-    let cmd = SelectOptional(storage)
-    let result = cmd.Run() |> Seq.exactlyOne
-    
+    let result = SelectOptional.GetText() |> runSelect storage |> Seq.exactlyOne |> SelectOptional.Result
     Assert.IsTrue(result.s1.IsSome)
     Assert.IsTrue(result.s2.IsNone)
 
-type SelectTypedOptional = SparqlCommand<"""SELECT * WHERE  
+type SelectTypedOptional = SparqlParametrizedQuery<"""SELECT * WHERE  
     { { ?s1 <http://example.org/p> ?LIT_1 } UNION { ?s2 <http://example.org/q> ?LIT_2} }  """>
 [<Test>]
 let ``Can use optional typed results`` () =
-    let cmd = SelectTypedOptional(storage)
-    let result = cmd.Run() |> Seq.exactlyOne
-    
+    let result = SelectTypedOptional.GetText() |> runSelect storage |> Seq.exactlyOne |> SelectTypedOptional.Result
     Assert.IsTrue(result.s1.IsSome)
     Assert.IsTrue(result.s2.IsNone)
     Assert.AreEqual(Some "aa", result.LIT_1)
