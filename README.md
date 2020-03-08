@@ -13,7 +13,7 @@ type Book = UriProvider<"https://schema.org/Book.ttl">
 let a: System.Uri = Book.author
 ```
 
-The vocabulary can be either a local file or a web resource like in the example above.
+The vocabulary can be either turtle text, a local file or a web resource like in the example above.
 The list of IRIs for which a property is generated is obtained with the following SPARQL query:
 
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -25,11 +25,11 @@ The list of IRIs for which a property is generated is obtained with the followin
 
 You can provide your own SPARQL query to customize the set of properties.
 
-## SparqlParametrizedQuery
-_SparqlParametrizedQuery_ provides some type safety around SPARQL queries, in the same vein of [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
+## SparqlQueryProvider
+_SparqlQueryProvider_ provides some type safety around SPARQL queries, in the same vein of [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
 
 ```fs
-type Q = SparqlParametrizedQuery<"SELECT * WHERE { ?s ?IRI_p $INT }">
+type Q = SparqlQueryProvider<"SELECT * WHERE { ?s ?IRI_p $INT }">
 
 let exec: string -> SparqlResultSet = 
     failwith "Use your favourite SPARQL client"
@@ -51,11 +51,11 @@ may return unparseable values due to the schemaless nature of RDF.
 
 
 
-## SparqlParametrizedCommand
-_SparqlParametrizedCommand_ behaves like _SparqlParametrizedQuery_ except that it lacks results.
+## SparqlCommandProvider
+_SparqlCommandProvider_ behaves like _SparqlQueryProvider_ except that it lacks results.
 
 ```fs
-type Cmd = SparqlParametrizedCommand<"""
+type Cmd = SparqlCommandProvider<"""
     INSERT DATA {$IRI_person <http://example.org/age> $INT_age}
 """>
 

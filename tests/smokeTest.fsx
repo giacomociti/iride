@@ -9,7 +9,7 @@ open VDS.RDF
 open VDS.RDF.Query
 open VDS.RDF.Storage
 
-type Q = SparqlParametrizedQuery<"SELECT * WHERE { ?s ?IRI_p $INT }">
+type Q = SparqlQueryProvider<"SELECT * WHERE { ?s ?IRI_p $INT }">
 
 let exec: string -> SparqlResultSet = 
     failwith "Use your favourite SPARQL client"
@@ -40,7 +40,7 @@ for result in results do
     let predicate: System.Uri = result.IRI_p
     // ...
 
-type Cmd = SparqlParametrizedCommand<"""
+type Cmd = SparqlCommandProvider<"""
     INSERT DATA {$IRI_person <http://example.org/age> $INT_age}
 """>
 
@@ -52,7 +52,7 @@ Cmd.GetText(
 
 let lit = NodeFactory().CreateLiteralNode("aa")
 
-type CMD = SparqlParametrizedCommand<"""
+type CMD = SparqlCommandProvider<"""
 insert {?s <http://example.org/bar> $o }
 WHERE { ?s ?p $o }
 """, RdfSchema = """C:\Repos\oss\iride\tests\Iride.Tests\vocab.ttl""", SchemaQuery = """
@@ -62,7 +62,7 @@ WHERE { ?s ?p $o }
 let x = CMD.GetText(lit)
 printfn "%A" x
 
-type Q = SparqlParametrizedQuery<"""
+type Q = SparqlQueryProvider<"""
     prefix : <http://example.org/>
     select ?s ?p
     WHERE { optional { ?s :Foo $o }}

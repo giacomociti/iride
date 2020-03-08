@@ -21,7 +21,7 @@ let runSelect (storage: IQueryableStorage) sparql =
     (storage.Query sparql) :?> SparqlResultSet
 
 
-type Ask = SparqlParametrizedQuery<"ASK WHERE {?s ?p $o}">
+type Ask = SparqlQueryProvider<"ASK WHERE {?s ?p $o}">
 
 [<Test>]
 let ``Can ask`` () =
@@ -29,7 +29,7 @@ let ``Can ask`` () =
     Assert.AreEqual("""ASK WHERE {?s ?p "aa"}""", actual)
     
 
-type Construct = SparqlParametrizedQuery<"CONSTRUCT {?s ?p $o} WHERE {?s ?p $o}">
+type Construct = SparqlQueryProvider<"CONSTRUCT {?s ?p $o} WHERE {?s ?p $o}">
 
 [<Test>]
 let ``Can constuct`` () =
@@ -37,7 +37,7 @@ let ``Can constuct`` () =
     Assert.AreEqual("""CONSTRUCT {?s ?p "aa"} WHERE {?s ?p "aa"}""", actual)
 
 
-type Select = SparqlParametrizedQuery<"SELECT * WHERE {?s ?p $o}">
+type Select = SparqlQueryProvider<"SELECT * WHERE {?s ?p $o}">
 
 [<Test>]
 let ``Can select`` () =
@@ -48,7 +48,7 @@ let ``Can select`` () =
     Assert.AreEqual(Uri "http://example.org/p", (result.p :?> IUriNode).Uri)
     
 
-type AskString = SparqlParametrizedQuery<"ASK WHERE {?s ?p $LIT}">
+type AskString = SparqlQueryProvider<"ASK WHERE {?s ?p $LIT}">
 
 [<Test>]
 let ``Can use typed parameters`` () =
@@ -56,7 +56,7 @@ let ``Can use typed parameters`` () =
     Assert.AreEqual("""ASK WHERE {?s ?p "aa"^^<http://www.w3.org/2001/XMLSchema#string>}""", actual)
 
 
-type SelectString = SparqlParametrizedQuery<"SELECT * WHERE {?IRI_s ?IRI_p ?LIT}">
+type SelectString = SparqlQueryProvider<"SELECT * WHERE {?IRI_s ?IRI_p ?LIT}">
 [<Test>]
 let ``Can use typed results`` () =
     let result = SelectString.GetText() |> runSelect storage |> Seq.exactlyOne |> SelectString.Result
@@ -64,7 +64,7 @@ let ``Can use typed results`` () =
     Assert.AreEqual(Uri "http://example.org/p", result.IRI_p)
     Assert.AreEqual("aa", result.LIT)
 
-type SelectInt = SparqlParametrizedQuery<"SELECT * WHERE {?s ?p ?INT}">
+type SelectInt = SparqlQueryProvider<"SELECT * WHERE {?s ?p ?INT}">
 [<Test>]
 let ``Can use typed int results`` () =
     let storage = new InMemoryManager()
@@ -74,7 +74,7 @@ let ``Can use typed int results`` () =
     let result = SelectInt.GetText() |> runSelect storage |> Seq.exactlyOne |> SelectInt.Result
     Assert.AreEqual(5, result.INT)
     
-type SelectDecimal = SparqlParametrizedQuery<"SELECT * WHERE {?s ?p ?NUM}">
+type SelectDecimal = SparqlQueryProvider<"SELECT * WHERE {?s ?p ?NUM}">
 [<Test>]
 let ``Can use typed decimal results`` () =
     let storage = new InMemoryManager()
@@ -84,7 +84,7 @@ let ``Can use typed decimal results`` () =
     let result = SelectDecimal.GetText() |> runSelect storage |> Seq.exactlyOne |> SelectDecimal.Result
     Assert.AreEqual(5.2, result.NUM)
 
-type SelectDate = SparqlParametrizedQuery<"SELECT * WHERE {?s ?p ?DATE}">
+type SelectDate = SparqlQueryProvider<"SELECT * WHERE {?s ?p ?DATE}">
 [<Test>]
 let ``Can use typed date results`` () =
     let storage = new InMemoryManager()
@@ -95,7 +95,7 @@ let ``Can use typed date results`` () =
     let expected = DateTime(2016, 12, 1)
     Assert.AreEqual(expected, result.DATE)
 
-type SelectTime = SparqlParametrizedQuery<"SELECT * WHERE {?s ?p ?TIME}">
+type SelectTime = SparqlQueryProvider<"SELECT * WHERE {?s ?p ?TIME}">
 [<Test>]
 let ``Can use typed time results`` () =
     let storage = new InMemoryManager()
@@ -106,7 +106,7 @@ let ``Can use typed time results`` () =
     let expected = DateTimeOffset(DateTime(2016, 12, 1, 15, 31, 10), TimeSpan.FromHours -5.)
     Assert.AreEqual(expected, result.TIME)
 
-type SelectOptional = SparqlParametrizedQuery<"""SELECT * WHERE  
+type SelectOptional = SparqlQueryProvider<"""SELECT * WHERE  
     { { ?s1 ?p1 "aa" } UNION { ?s2 ?p2 "bb" } }  """>
 [<Test>]
 let ``Can use optional results`` () =
@@ -114,7 +114,7 @@ let ``Can use optional results`` () =
     Assert.IsTrue(result.s1.IsSome)
     Assert.IsTrue(result.s2.IsNone)
 
-type SelectTypedOptional = SparqlParametrizedQuery<"""SELECT * WHERE  
+type SelectTypedOptional = SparqlQueryProvider<"""SELECT * WHERE  
     { { ?s1 <http://example.org/p> ?LIT_1 } UNION { ?s2 <http://example.org/q> ?LIT_2} }  """>
 [<Test>]
 let ``Can use optional typed results`` () =
@@ -124,7 +124,7 @@ let ``Can use optional typed results`` () =
     Assert.AreEqual(Some "aa", result.LIT_1)
     Assert.AreEqual(None, result.LIT_2)
 
-type Insert = SparqlParametrizedCommand<"INSERT DATA {$IRI_person <http://example.org/age> $INT_age}">
+type Insert = SparqlCommandProvider<"INSERT DATA {$IRI_person <http://example.org/age> $INT_age}">
 [<Test>]
 let ``Can insert`` () =
     let actual = 

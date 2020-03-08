@@ -95,7 +95,7 @@ type BasicCommandProvider (config : TypeProviderConfig) as this =
 
     let providerType = 
         let result =
-            ProvidedTypeDefinition(asm, ns, "SparqlParametrizedCommand", Some typeof<obj>, isErased = false)
+            ProvidedTypeDefinition(asm, ns, "SparqlCommandProvider", Some typeof<obj>, isErased = false)
         let commandText = ProvidedStaticParameter("Command", typeof<string>)
         let rdfSchema = ProvidedStaticParameter("Schema", typeof<string>, parameterDefaultValue = "")
         let schemaQuery = ProvidedStaticParameter("SchemaQuery", typeof<string>, parameterDefaultValue = SchemaQuery.RdfPropertiesAndClasses)
@@ -200,7 +200,7 @@ type BasicQueryProvider (config : TypeProviderConfig) as this =
 
     let providerType = 
         let result =
-            ProvidedTypeDefinition(asm, ns, "SparqlParametrizedQuery", Some typeof<obj>, isErased = false)
+            ProvidedTypeDefinition(asm, ns, "SparqlQueryProvider", Some typeof<obj>, isErased = false)
         let queryText = ProvidedStaticParameter("Query", typeof<string>)
         let rdfSchema = ProvidedStaticParameter("Schema", typeof<string>, parameterDefaultValue = "")
         let schemaQuery = ProvidedStaticParameter("SchemaQuery", typeof<string>, parameterDefaultValue = SchemaQuery.RdfPropertiesAndClasses)
