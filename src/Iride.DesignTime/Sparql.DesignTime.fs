@@ -39,12 +39,10 @@ module Helper =
 
 
     let createTextMethod commandText inputParameters =
-        let parameterNames = 
-            inputParameters 
-            |> List.map (fun x -> x.ParameterName)
-        let parameters =
+        let parameterNames, parameters =
             inputParameters
-            |> List.map (fun x -> ProvidedParameter(x.ParameterName, getType x.Type))
+            |> List.map (fun x -> x.ParameterName, ProvidedParameter(x.ParameterName, getType x.Type))
+            |> List.unzip
         ProvidedMethod(
             methodName = "GetText", 
             parameters = parameters, 
@@ -86,8 +84,10 @@ type BasicCommandProvider (config : TypeProviderConfig) as this =
             |> List.map (fun x -> x.Uri.AbsoluteUri)
             |> checkSchema commandText
 
-        let names = parameterNames commandText
-        Helper.createTextMethod commandText (parameters names)
+        commandText
+        |> parameterNames
+        |> parameters  
+        |> Helper.createTextMethod commandText
         |> providedType.AddMember
 
         asm.AddTypes [providedType]
@@ -96,17 +96,17 @@ type BasicCommandProvider (config : TypeProviderConfig) as this =
     let providerType = 
         let result =
             ProvidedTypeDefinition(asm, ns, "SparqlParametrizedCommand", Some typeof<obj>, isErased = false)
-        let commandText = ProvidedStaticParameter("CommandText", typeof<string>)
-        let rdfSchema = ProvidedStaticParameter("RdfSchema", typeof<string>, parameterDefaultValue = "")
-        let schemaQuery = ProvidedStaticParameter("SchemaQuery", typeof<string>, parameterDefaultValue = Query.RdfResources)
+        let commandText = ProvidedStaticParameter("Command", typeof<string>)
+        let rdfSchema = ProvidedStaticParameter("Schema", typeof<string>, parameterDefaultValue = "")
+        let schemaQuery = ProvidedStaticParameter("SchemaQuery", typeof<string>, parameterDefaultValue = SchemaQuery.RdfPropertiesAndClasses)
 
         result.DefineStaticParameters([commandText; rdfSchema; schemaQuery], fun typeName args -> 
             createType typeName (string args.[0]) (string args.[1]) (string args.[2]))
 
         result.AddXmlDoc """<summary>SPARQL parametrized command.</summary>
-           <param name='CommandText'>Command text. Variables prefixed with '$' are treated as input parameters.</param>
-           <param name='RdfSchema'>RDF vocabulary where to look for IRIs.</param>
-           <param name='SchemaQuery'>SPARQL query to extract the vocabulary.</param>
+           <param name='Command'>Command text. Variables prefixed with '$' are treated as input parameters.</param>
+           <param name='Schema'>RDF vocabulary to limit allowed IRIs in the query.</param>
+           <param name='SchemaQuery'>SPARQL query to extract the vocabulary. Default to classes and properties.</param>
          """
         result
 
@@ -201,16 +201,16 @@ type BasicQueryProvider (config : TypeProviderConfig) as this =
     let providerType = 
         let result =
             ProvidedTypeDefinition(asm, ns, "SparqlParametrizedQuery", Some typeof<obj>, isErased = false)
-        let queryText = ProvidedStaticParameter("QueryText", typeof<string>)
-        let rdfSchema = ProvidedStaticParameter("RdfSchema", typeof<string>, parameterDefaultValue = "")
-        let schemaQuery = ProvidedStaticParameter("SchemaQuery", typeof<string>, parameterDefaultValue = Query.RdfResources)
+        let queryText = ProvidedStaticParameter("Query", typeof<string>)
+        let rdfSchema = ProvidedStaticParameter("Schema", typeof<string>, parameterDefaultValue = "")
+        let schemaQuery = ProvidedStaticParameter("SchemaQuery", typeof<string>, parameterDefaultValue = SchemaQuery.RdfPropertiesAndClasses)
         result.DefineStaticParameters([queryText; rdfSchema; schemaQuery], fun typeName args -> 
             createType typeName (string args.[0]) (string args.[1]) (string args.[2]))
 
-        result.AddXmlDoc """<summary>SPARQL parametrized query.</summary>
-           <param name='QueryText'>Query text. Variables prefixed with '$' are treated as input parameters.</param>
-           <param name='RdfSchema'>RDF vocabulary where to look for IRIs.</param>
-           <param name='SchemaQuery'>SPARQL query to extract the vocabulary.</param>
+        result.AddXmlDoc """<summary>SPARQL query.</summary>
+           <param name='Query'>SPARQL query text. Variables prefixed with '$' are treated as input parameters.</param>
+           <param name='Schema'>RDF vocabulary to limit allowed IRIs in the query.</param>
+           <param name='SchemaQuery'>SPARQL query to extract the vocabulary. Default to classes and properties.</param>
          """
         result
 

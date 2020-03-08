@@ -30,10 +30,25 @@ module RdfHelper =
                 yield { Uri = uri; Label = label; Comment = comment }
         ]
 
+
+    let tryParseTurtle (schema: string) =
+        let graph = new Graph()
+        try 
+            TurtleParser().Load(graph, new IO.StringReader(schema))
+            Some graph
+        with _ -> None
+     
+    let getGraph resolutionFolder schema = 
+        match tryParseTurtle schema with
+        | Some graph -> graph
+        | None ->
+            let graph = new Graph()
+            let path = IO.Path.Combine(resolutionFolder, schema)
+            if IO.File.Exists path
+            then FileLoader.Load(graph, path)
+            else UriLoader.Load(graph, Uri schema)
+            graph
+
     let getGraphProperties resolutionFolder schema query =
-        use graph = new Graph()
-        let path = IO.Path.Combine(resolutionFolder, schema)
-        if IO.File.Exists path
-        then FileLoader.Load(graph, path)
-        else UriLoader.Load(graph, Uri schema)
+        use graph = getGraph resolutionFolder schema
         getProperties query graph

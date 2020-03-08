@@ -20,6 +20,7 @@ let storage =
 let runSelect (storage: IQueryableStorage) sparql =
     (storage.Query sparql) :?> SparqlResultSet
 
+
 type Ask = SparqlParametrizedQuery<"ASK WHERE {?s ?p $o}">
 
 [<Test>]
@@ -122,3 +123,12 @@ let ``Can use optional typed results`` () =
     Assert.IsTrue(result.s2.IsNone)
     Assert.AreEqual(Some "aa", result.LIT_1)
     Assert.AreEqual(None, result.LIT_2)
+
+type Insert = SparqlParametrizedCommand<"INSERT DATA {$IRI_person <http://example.org/age> $INT_age}">
+[<Test>]
+let ``Can insert`` () =
+    let actual = 
+        Insert.GetText(
+            IRI_person = System.Uri "http://example.org/p1",
+            INT_age = 25)
+    Assert.AreEqual("INSERT DATA {<http://example.org/p1> <http://example.org/age> 25 }", actual)

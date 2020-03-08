@@ -18,14 +18,14 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
     let asm = Assembly.GetExecutingAssembly()
 
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
-    do assert (typeof<Iride.IMarker>.Assembly.GetName().Name = asm.GetName().Name)  
+    do assert (typeof<Iride.CommandRuntime>.Assembly.GetName().Name = asm.GetName().Name)  
 
-    let createType typeName (rdfSchemaUri: string) sparqlQuery allValuesMethod =
+    let createType typeName (schema: string) schemaQuery allValuesMethod =
         let asm = ProvidedAssembly()
         let result = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
         
         let providedProperties = [
-            for prop in RdfHelper.getGraphProperties config.ResolutionFolder rdfSchemaUri sparqlQuery do
+            for prop in RdfHelper.getGraphProperties config.ResolutionFolder schema schemaQuery do
                 let uri = prop.Uri.ToString()
                 let providedProperty = 
                     ProvidedProperty(
@@ -58,15 +58,15 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
         let result =
             ProvidedTypeDefinition(asm, ns, "UriProvider", Some typeof<obj>, isErased = false)
         result.DefineStaticParameters([
-                ProvidedStaticParameter("RdfSchemaUri", typeof<string>)
-                ProvidedStaticParameter("SparqlQuery", typeof<string>, Query.RdfResources)
+                ProvidedStaticParameter("Schema", typeof<string>)
+                ProvidedStaticParameter("SchemaQuery", typeof<string>, SchemaQuery.RdfResources)
                 ProvidedStaticParameter("AllValuesMethod", typeof<string>, "")
             ],
             fun typeName args -> createType typeName (string args.[0]) (string args.[1]) (string args.[2]) )
 
         result.AddXmlDoc """<summary>Uri properties from IRIs in RDF vocabularies.</summary>
-           <param name='RdfSchemaUri'>RDF vocabulary where to look for IRIs.</param>
-           <param name='SparqlQuery'>SPARQL query to extract IRIs with their label and comment.</param>
+           <param name='Schema'>RDF vocabulary where to look for IRIs.</param>
+           <param name='SchemaQuery'>SPARQL query to extract IRIs from Schema. Default to resources with label and comment.</param>
            <param name='AllValuesMethod'>Name of method listing all Uri values.</param>
          """
         result
