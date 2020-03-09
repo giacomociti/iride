@@ -32,18 +32,18 @@ let ``Can access vocabulary`` () =
     Assert.AreEqual("http://example.org/Foo", Vocab.``foo class``.ToString())
 
 
-type OwlProperties = UriProvider<CommonUris.Owl, SchemaQuery.RdfProperties>
+//type OwlProperties = UriProvider<CommonUris.Owl, SchemaQuery.RdfProperties>
 
-[<Test>]
-let ``Can access owl properties`` () =    
-   Assert.AreEqual("#cardinality", OwlProperties.cardinality.Fragment)
+//[<Test>]
+//let ``Can access owl properties`` () =    
+//   Assert.AreEqual("#cardinality", OwlProperties.cardinality.Fragment)
    
 
-type FoafClasses = UriProvider<"http://xmlns.com/foaf/0.1/", SchemaQuery.RdfsClasses>
+//type FoafClasses = UriProvider<"http://xmlns.com/foaf/0.1/", SchemaQuery.RdfsClasses>
 
-[<Test>]
-let ``Can access foaf classes`` () =    
-   Assert.AreEqual("Agent", FoafClasses.Agent.Segments |> Seq.last)
+//[<Test>]
+//let ``Can access foaf classes`` () =    
+//   Assert.AreEqual("Agent", FoafClasses.Agent.Segments |> Seq.last)
 
 type FileVocab = UriProvider<"Vocab.ttl">
 

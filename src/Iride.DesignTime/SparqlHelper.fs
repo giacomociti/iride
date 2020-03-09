@@ -12,16 +12,7 @@ module SparqlHelper =
     type Variable =  { VariableName:  string; Type: KnownDataType }
     type Parameter = { ParameterName: string; Type: KnownDataType }
 
-    type ResultVariables = { 
-        Variables: Variable list
-        OptionalVariables: Variable list }
-
-    type QueryResult = Boolean | Graph | Bindings of ResultVariables
-
-    type QueryDescriptor = { 
-        commandText: string
-        input: Parameter list
-        output: QueryResult }
+    type ResultVariables = { Variables: Variable list; OptionalVariables: Variable list }
 
     let tokens commandText = seq {
         use reader = new StringReader (commandText)
@@ -71,30 +62,13 @@ module SparqlHelper =
             |> Seq.map (fun x -> { VariableName = x; Type = knownDataType x })
             |> List.ofSeq
         let algebra = query.ToAlgebra()
-        Bindings {
-            Variables = variables algebra.FixedVariables
-            OptionalVariables = variables algebra.FloatingVariables }            
+        { Variables = variables algebra.FixedVariables
+          OptionalVariables = variables algebra.FloatingVariables }            
 
     let parameters parameterNames =
         parameterNames
         |> Seq.map (fun x -> { ParameterName = x; Type = knownDataType x })
         |> List.ofSeq
-
-
-    let queryDescriptor commandText =
-        let names = parameterNames commandText        
-        { 
-            commandText = commandText
-            input = parameters names
-            output =
-                let query = SparqlQueryParser().ParseFromString(commandText)
-                match query.QueryType with
-                | SparqlQueryType.Ask -> Boolean
-                | SparqlQueryType.Construct
-                | SparqlQueryType.Describe
-                | SparqlQueryType.DescribeAll -> Graph
-                | _ -> bindings query names
-        }
 
     let isUri token = 
         token = Token.URI ||

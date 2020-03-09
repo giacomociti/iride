@@ -28,6 +28,8 @@ module Helper =
         | Date -> typeof<System.DateTime>
         | Time -> typeof<System.DateTimeOffset>
 
+    let dummyUri = System.Uri "http://iride.dummy"
+
     let converterMethod = function
         | Node -> typeof<CommandRuntime>.GetMethod "AsNode"
         | Iri -> typeof<CommandRuntime>.GetMethod "AsUri"
@@ -37,6 +39,19 @@ module Helper =
         | Date -> typeof<CommandRuntime>.GetMethod "AsDateTime"
         | Time -> typeof<CommandRuntime>.GetMethod "AsDateTimeOffset"
 
+    let getDefaultValue = function
+        | Node -> CommandRuntime.ToNode(dummyUri)
+        | Iri -> CommandRuntime.ToNode(dummyUri)
+        | Literal -> CommandRuntime.ToNode("")
+        | Integer -> CommandRuntime.ToNode(0)
+        | Number -> CommandRuntime.ToNode(0M)
+        | Date -> CommandRuntime.ToNode(System.DateTime.Today)
+        | Time -> CommandRuntime.ToNode(System.DateTimeOffset.Now)
+
+    let checkSchema (ns: NamespaceMapper) (sparql: string) (uris: System.Uri list) =
+        let allowed = uris |> List.map (fun x -> x.AbsoluteUri)
+        let errors = SparqlHelper.check ns allowed sparql
+        if errors.Length > 0 then failwithf "Unknown Uris: %A\n Allowed: %A" errors uris
 
     let createTextMethod commandText inputParameters =
         let parameterNames, parameters =
@@ -66,28 +81,25 @@ type BasicCommandProvider (config : TypeProviderConfig) as this =
 
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
     do assert (typeof<Iride.CommandRuntime>.Assembly.GetName().Name = asm.GetName().Name)
-    
-    let checkSchema (queryText: string) uris =
-        let ns = SparqlUpdateParser().ParseFromString(queryText).NamespaceMap
-        let errors = SparqlHelper.check ns uris queryText
-        if errors.Length > 0 then failwithf "Unknown Uris: %A\n Allowed: %A" errors uris
 
     let createType typeName (sparqlCommand: string) rdfSchema schemaQuery =
         let asm = ProvidedAssembly()
         let providedType = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
 
         let commandText = Helper.commandText config.ResolutionFolder sparqlCommand
+        let parNames = parameterNames commandText
+        let pars = parameters parNames
+        let vals = pars |> List.map (fun x -> Helper.getDefaultValue x.Type)
+        let cmd = CommandRuntime.GetCmdText(commandText, List.ofSeq parNames, Array.ofSeq vals)
+        let ns = SparqlUpdateParser().ParseFromString(cmd).NamespaceMap
 
         if rdfSchema <> "" then
             schemaQuery
             |> Iride.RdfHelper.getGraphProperties config.ResolutionFolder rdfSchema 
-            |> List.map (fun x -> x.Uri.AbsoluteUri)
-            |> checkSchema commandText
+            |> List.map (fun x -> x.Uri)
+            |> Helper.checkSchema ns commandText
 
-        commandText
-        |> parameterNames
-        |> parameters  
-        |> Helper.createTextMethod commandText
+        Helper.createTextMethod commandText pars
         |> providedType.AddMember
 
         asm.AddTypes [providedType]
@@ -123,7 +135,6 @@ type BasicQueryProvider (config : TypeProviderConfig) as this =
 
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
     do assert (typeof<Iride.CommandRuntime>.Assembly.GetName().Name = asm.GetName().Name)
-
         
     let createResultType (asm: ProvidedAssembly) (bindings: ResultVariables) =
         let resultType = ProvidedTypeDefinition(asm, ns, "Result", Some typeof<obj>, isErased = false)
@@ -168,31 +179,35 @@ type BasicQueryProvider (config : TypeProviderConfig) as this =
         |>  List.iter resultType.AddMember
         resultType
 
-    let checkSchema (queryText: string) uris =
-        let ns = SparqlQueryParser().ParseFromString(queryText).NamespaceMap
-        let errors = SparqlHelper.check ns uris queryText
-        if errors.Length > 0 then failwithf "Unknown Uris: %A\n Allowed: %A" errors uris
-
     let createType typeName (sparqlQuery: string) rdfSchema schemaQuery =
         let asm = ProvidedAssembly()
         let providedType = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased = false)
         
         let queryText = Helper.commandText config.ResolutionFolder sparqlQuery
+       
+        let parNames = parameterNames queryText
+        let pars = parameters parNames
+        let vals = pars |> List.map (fun x -> Helper.getDefaultValue x.Type)
+        let cmd = CommandRuntime.GetCmdText(queryText, List.ofSeq parNames, Array.ofSeq vals)
+        let query = SparqlQueryParser().ParseFromString(cmd)
+        
         if rdfSchema <> "" then
             schemaQuery
             |> Iride.RdfHelper.getGraphProperties config.ResolutionFolder rdfSchema 
-            |> List.map (fun x -> x.Uri.AbsoluteUri)
-            |> checkSchema queryText
-
-        let query = queryDescriptor queryText
-
-        match query.output with
-        | QueryResult.Bindings bindings ->
+            |> List.map (fun x -> x.Uri)
+            |> Helper.checkSchema query.NamespaceMap queryText
+        
+        match query.QueryType with
+        | SparqlQueryType.Ask
+        | SparqlQueryType.Construct
+        | SparqlQueryType.Describe
+        | SparqlQueryType.DescribeAll -> ()
+        | _ -> 
+            let bindings = SparqlHelper.bindings query parNames
             let resultType = createResultType asm bindings
             providedType.AddMember resultType
-        | _ -> ()
                 
-        Helper.createTextMethod queryText query.input
+        Helper.createTextMethod queryText pars
         |> providedType.AddMember
 
         asm.AddTypes [providedType]

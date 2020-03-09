@@ -9,12 +9,15 @@ open VDS.RDF
 open VDS.RDF.Query
 open VDS.RDF.Storage
 
-type Q = SparqlQueryProvider<"SELECT * WHERE { ?s ?IRI_p $INT }">
+
+
+type Q = SparqlQueryProvider<"SELECT * FROM $IRI_G WHERE { ?s ?IRI_p $INT }",
+                                Schema="""C:\Repos\oss\iride\tests\Iride.Tests\vocab.ttl""">
 
 let exec: string -> SparqlResultSet = 
     failwith "Use your favourite SPARQL client"
 
-let query = Q.GetText(INT=42)
+let query = Q.GetText(INT=42, IRI_G=System.Uri "http://www.aaa")
 for r in exec(query) do
     let result = Q.Result(r)
     let subject: VDS.RDF.INode = result.s 
@@ -41,8 +44,8 @@ for result in results do
     // ...
 
 type Cmd = SparqlCommandProvider<"""
-    INSERT DATA {$IRI_person <http://example.org/age> $INT_age}
-""">
+    INSERT DATA {$IRI_person <http://example.org/bar> $INT_age}
+""", Schema="""C:\Repos\oss\iride\tests\Iride.Tests\vocab.ttl""">
 
 Cmd.GetText(
     IRI_person = System.Uri "http://example.org/p1",
@@ -55,7 +58,7 @@ let lit = NodeFactory().CreateLiteralNode("aa")
 type CMD = SparqlCommandProvider<"""
 insert {?s <http://example.org/bar> $o }
 WHERE { ?s ?p $o }
-""", RdfSchema = """C:\Repos\oss\iride\tests\Iride.Tests\vocab.ttl""", SchemaQuery = """
+""", Schema = """C:\Repos\oss\iride\tests\Iride.Tests\vocab.ttl""", SchemaQuery = """
      select ?uri where {?uri a ?x}""">
 
 //let cmd = CMD()
@@ -66,7 +69,7 @@ type Q = SparqlQueryProvider<"""
     prefix : <http://example.org/>
     select ?s ?p
     WHERE { optional { ?s :Foo $o }}
-    """, RdfSchema = """C:\Repos\oss\iride\tests\Iride.Tests\vocab.ttl""", SchemaQuery = """
+    """, Schema = """C:\Repos\oss\iride\tests\Iride.Tests\vocab.ttl""", SchemaQuery = """
      select ?uri where {?uri a ?x}
     """>
 
