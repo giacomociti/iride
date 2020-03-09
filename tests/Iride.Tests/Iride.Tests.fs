@@ -45,11 +45,11 @@ let ``Can access vocabulary`` () =
 //let ``Can access foaf classes`` () =    
 //   Assert.AreEqual("Agent", FoafClasses.Agent.Segments |> Seq.last)
 
-type FileVocab = UriProvider<"Vocab.ttl">
+// type FileVocab = UriProvider<"Vocab.ttl">
 
-[<Test>]
-let ``Can access vocabulary in local file`` () =    
-    Assert.AreEqual("http://example.org/Foo", FileVocab.``foo class``.ToString())
+// [<Test>]
+// let ``Can access vocabulary in local file`` () =    
+//     Assert.AreEqual("http://example.org/Foo", FileVocab.``foo class``.ToString())
    
 
 type MyProps = UriProvider<Vocabulary, """
