@@ -11,6 +11,11 @@ module RdfHelper =
     open VDS.RDF.Query
 
     let getProperties (query: string) (graph: IGraph) =
+
+        let upperInitial (x: string) =
+           let head, tail = x.Substring(0, 1), x.Substring(1)
+           head.ToUpperInvariant() + tail;
+
         let results = graph.ExecuteQuery query
         [
             for r in results :?> SparqlResultSet do
@@ -22,6 +27,7 @@ module RdfHelper =
                         if uri.Fragment.StartsWith "#"
                         then uri.Fragment.Substring 1
                         else Seq.last uri.Segments
+                        |> upperInitial
                 let comment =
                     match r.TryGetBoundValue "comment" with
                     | true, x -> (x :?> ILiteralNode).Value
