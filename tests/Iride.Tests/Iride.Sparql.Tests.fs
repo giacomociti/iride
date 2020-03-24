@@ -53,7 +53,7 @@ type AskString = SparqlQueryProvider<"ASK WHERE {?s ?p $LIT}">
 [<Test>]
 let ``Can use typed parameters`` () =
     let actual = AskString.GetText("aa")
-    Assert.AreEqual("""ASK WHERE {?s ?p "aa"^^<http://www.w3.org/2001/XMLSchema#string>}""", actual)
+    Assert.AreEqual("""ASK WHERE {?s ?p "aa"}""", actual)
 
 
 type SelectString = SparqlQueryProvider<"SELECT * WHERE {?IRI_s ?IRI_p ?LIT}">
@@ -89,7 +89,7 @@ type SelectDate = SparqlQueryProvider<"SELECT * WHERE {?s ?p ?DATE}">
 let ``Can use typed date results`` () =
     let storage = new InMemoryManager()
     storage.Update """INSERT DATA {
-        <http://example.org/s> <http://example.org/p> "2016-12-01"^^<http://www.w3.org/2001/XMLSchema#date>
+        <http://example.org/s> <http://example.org/p> "2016-12-01"
     }"""
     let result = SelectDate.GetText() |> runSelect storage |> Seq.exactlyOne |> SelectDate.Result
     let expected = DateTime(2016, 12, 1)
@@ -100,7 +100,7 @@ type SelectTime = SparqlQueryProvider<"SELECT * WHERE {?s ?p ?TIME}">
 let ``Can use typed time results`` () =
     let storage = new InMemoryManager()
     storage.Update """INSERT DATA {
-        <http://example.org/s> <http://example.org/p> "2016-12-01T15:31:10-05:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>
+        <http://example.org/s> <http://example.org/p> "2016-12-01T15:31:10-05:00"
     }"""
     let result = SelectTime.GetText() |> runSelect storage |> Seq.exactlyOne |> SelectTime.Result
     let expected = DateTimeOffset(DateTime(2016, 12, 1, 15, 31, 10), TimeSpan.FromHours -5.)

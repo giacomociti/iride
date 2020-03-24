@@ -15,7 +15,7 @@ type CommandRuntime =
 
     static member ToNode(n: INode) = n
     static member ToNode(u: System.Uri) = CommandRuntime.NodeFactory.CreateUriNode(u) :> INode
-    static member ToNode(s: string) = s.ToLiteral(CommandRuntime.NodeFactory) :> INode
+    static member ToNode(s: string) = CommandRuntime.NodeFactory.CreateLiteralNode(s) :> INode
     static member ToNode(n: int) = n.ToLiteral(CommandRuntime.NodeFactory) :> INode
     static member ToNode(d: decimal) = d.ToLiteral(CommandRuntime.NodeFactory) :> INode
     static member ToNode(t: System.DateTime) : INode = t.ToLiteral(CommandRuntime.NodeFactory) :> INode
