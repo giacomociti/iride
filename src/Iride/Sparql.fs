@@ -18,8 +18,9 @@ type CommandRuntime =
     static member ToNode(s: string) = CommandRuntime.NodeFactory.CreateLiteralNode(s) :> INode
     static member ToNode(n: int) = n.ToLiteral(CommandRuntime.NodeFactory) :> INode
     static member ToNode(d: decimal) = d.ToLiteral(CommandRuntime.NodeFactory) :> INode
-    static member ToNode(t: System.DateTime) : INode = t.ToLiteral(CommandRuntime.NodeFactory) :> INode
+    static member ToNode(t: System.DateTime) : INode = CommandRuntime.NodeFactory.CreateLiteralNode(t.ToString("yyyy-MM-dd")) :> INode
     static member ToNode(t: System.DateTimeOffset) : INode = t.ToLiteral(CommandRuntime.NodeFactory) :> INode
+    static member ToNode(t: bool) : INode = t.ToLiteral(CommandRuntime.NodeFactory) :> INode
 
     static member AsNode(n: INode) = n
     static member AsUri(n: INode) = (n :?> IUriNode).Uri
@@ -28,4 +29,4 @@ type CommandRuntime =
     static member AsDecimal(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToDecimal
     static member AsDateTime(n: INode) = XmlConvert.ToDateTime((n :?> ILiteralNode).Value, "yyyy-MM-dd")
     static member AsDateTimeOffset(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToDateTimeOffset
-   
+    static member AsBoolean(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToBoolean

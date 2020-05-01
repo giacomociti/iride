@@ -27,6 +27,7 @@ module Helper =
         | Number -> typeof<decimal>
         | Date -> typeof<System.DateTime>
         | Time -> typeof<System.DateTimeOffset>
+        | Boolean -> typeof<bool>
 
     let dummyUri = System.Uri "http://iride.dummy"
 
@@ -38,6 +39,7 @@ module Helper =
         | Number -> typeof<CommandRuntime>.GetMethod "AsDecimal"
         | Date -> typeof<CommandRuntime>.GetMethod "AsDateTime"
         | Time -> typeof<CommandRuntime>.GetMethod "AsDateTimeOffset"
+        | Boolean -> typeof<CommandRuntime>.GetMethod "AsBoolean"
 
     let getDefaultValue = function
         | Node -> CommandRuntime.ToNode(dummyUri)
@@ -47,6 +49,7 @@ module Helper =
         | Number -> CommandRuntime.ToNode(0M)
         | Date -> CommandRuntime.ToNode(System.DateTime.Today)
         | Time -> CommandRuntime.ToNode(System.DateTimeOffset.Now)
+        | Boolean -> CommandRuntime.ToNode(true)
 
     let checkSchema (ns: NamespaceMapper) (sparql: string) (uris: System.Uri list) =
         let allowed = uris |> List.map (fun x -> x.AbsoluteUri)

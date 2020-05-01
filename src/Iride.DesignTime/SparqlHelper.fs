@@ -7,7 +7,7 @@ open VDS.RDF.Parsing.Tokens
 
 module SparqlHelper =
 
-    type KnownDataType = Node | Iri | Literal | Integer | Number | Date | Time
+    type KnownDataType = Node | Iri | Literal | Integer | Number | Date | Time | Boolean
 
     type Variable =  { VariableName:  string; Type: KnownDataType }
     type Parameter = { ParameterName: string; Type: KnownDataType }
@@ -53,6 +53,7 @@ module SparqlHelper =
         | "NUM" -> Number
         | "DATE" -> Date
         | "TIME" -> Time
+        | "BOOL" -> Boolean
         | _   -> Node
 
     let bindings (query: SparqlQuery) parameterNames =
