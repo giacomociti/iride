@@ -75,29 +75,31 @@ let ``Can use optional typed results`` () =
     Assert.AreEqual(None, result.LIT_2)
 
 type InsertTyped = SparqlCommandProvider<"""
+    PREFIX : <http://example.org/>
     INSERT DATA {
         $IRI_Subject
-            <http://example.org/iri> $IRI_Object ;
-            <http://example.org/lit> $LIT ;
-            <http://example.org/int> $INT ;
-            <http://example.org/num> $NUM ;
-            <http://example.org/date> $DATE ;
-            <http://example.org/time> $TIME ;
-            <http://example.org/bool> $BOOL ;
-            <http://example.org/node> $Untyped .
+            :iri $IRI_Object ;
+            :lit $LIT ;
+            :int $INT ;
+            :num $NUM ;
+            :date $DATE ;
+            :time $TIME ;
+            :bool $BOOL ;
+            :node $Untyped .
     }""">
 
 type SelectTyped = SparqlQueryProvider<"""
+    PREFIX : <http://example.org/>
     SELECT * WHERE {
         $IRI_Subject
-            <http://example.org/iri> ?IRI_Object ;
-            <http://example.org/lit> ?LIT ;
-            <http://example.org/int> ?INT ;
-            <http://example.org/num> ?NUM ;
-            <http://example.org/date> ?DATE ;
-            <http://example.org/time> ?TIME ;
-            <http://example.org/bool> ?BOOL ;
-            <http://example.org/node> ?Untyped .
+            :iri ?IRI_Object ;
+            :lit ?LIT ;
+            :int ?INT ;
+            :num ?NUM ;
+            :date ?DATE ;
+            :time ?TIME ;
+            :bool ?BOOL ;
+            :node ?Untyped .
     }""">
 
 [<Test>]
@@ -115,16 +117,18 @@ let ``Can insert typed values`` () =
             Untyped = (literal "x" :> INode))
 
     let expected = """
+    PREFIX : <http://example.org/>
+
     INSERT DATA {
         <http://example.org/s>
-            <http://example.org/iri> <http://example.org/o> ;
-            <http://example.org/lit> "foo" ;
-            <http://example.org/int> 3  ;
-            <http://example.org/num> 5.4 ;
-            <http://example.org/date> "2020-12-31" ;
-            <http://example.org/time> "2020-12-31T10:23:55.000000+02:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
-            <http://example.org/bool> false ;
-            <http://example.org/node> "x" .
+            :iri <http://example.org/o> ;
+            :lit "foo" ;
+            :int 3  ;
+            :num 5.4 ;
+            :date "2020-12-31" ;
+            :time "2020-12-31T10:23:55.000000+02:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+            :bool false ;
+            :node "x" .
     }"""
 
     Assert.AreEqual(expected.Trim(), actual.Trim())

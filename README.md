@@ -1,13 +1,14 @@
 [![NuGet Badge](https://buildstats.info/nuget/Iride)](https://www.nuget.org/packages/Iride)
 
-This library contains F# type providers built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
+This library contains F# generative type providers built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
 
 ## UriProvider
 
-_UriProvider_ is a simple generative provider to create `System.Uri` properties
-from IRIs in RDF vocabularies.
+_UriProvider_ creates `System.Uri` properties from IRIs in RDF vocabularies.
 
 ```fs
+open Iride
+
 type Book = UriProvider<"https://schema.org/Book.ttl">
 
 let a: System.Uri = Book.author
@@ -26,7 +27,12 @@ The list of IRIs for which a property is generated is obtained with the followin
 You can provide your own SPARQL query to customize the set of properties.
 
 ## SparqlQueryProvider
-_SparqlQueryProvider_ provides some type safety around SPARQL queries, in the same vein of [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
+_SparqlQueryProvider_ checks SPARQL queries at design time, in the same vein of [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
+For example it detects syntax errors in the SPARQL text:
+
+![](tests/Ask.png)
+
+It also provides typed input parameters and (for SELECT queries) typed _Result_ objects.
 
 ```fs
 type Q = SparqlQueryProvider<"SELECT * WHERE { ?s ?IRI_p $INT }">
@@ -49,10 +55,10 @@ Furthermore, upper case data type hints (e.g. IRI, INT) instruct the type provid
 assign types to parameters and variables. Notice however that triple stores
 may return unparseable values due to the schemaless nature of RDF.
 
-
+Supported data types are IRI, LIT, INT, NUM, DATE, TIME, BOOL.
 
 ## SparqlCommandProvider
-_SparqlCommandProvider_ behaves like _SparqlQueryProvider_ except that it lacks results.
+_SparqlCommandProvider_ behaves like _SparqlQueryProvider_ except that it covers update commands.
 
 ```fs
 type Cmd = SparqlCommandProvider<"""
@@ -66,6 +72,12 @@ Cmd.GetText(
 // INSERT DATA {<http://example.org/p1> <http://example.org/age> 25 }
 ```
 
+## Vocabulary checks
+To detect typos in property and class names, it is useful to restrict the accepted vocabulary in queries and commands:
+
+![](tests/RdfSchema.png)
+
+In the example above the type provider reports an error because _BarZ_ is not present in the vocabulary specified by the _Schema_ parameter. 
 
 ## Building
 The type provider has separate design-time and runtime assemblies.
