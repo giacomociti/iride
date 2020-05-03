@@ -30,7 +30,7 @@ You can provide your own SPARQL query to customize the set of properties.
 _SparqlQueryProvider_ checks SPARQL queries at design time, in the same vein of [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
 For example it detects syntax errors in the SPARQL text:
 
-![](tests/Ask.png)
+![](https://github.com/giacomociti/iride/blob/master/tests/Ask.PNG)
 
 It also provides typed input parameters and (for SELECT queries) typed _Result_ objects.
 
@@ -75,7 +75,7 @@ Cmd.GetText(
 ## Vocabulary checks
 To detect typos in property and class names, it is useful to restrict the accepted vocabulary in queries and commands:
 
-![](tests/RdfSchema.png)
+![](https://github.com/giacomociti/iride/blob/master/tests/RdfSchema.PNG)
 
 In the example above the type provider reports an error because _BarZ_ is not present in the vocabulary specified by the _Schema_ parameter. 
 
