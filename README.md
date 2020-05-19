@@ -17,12 +17,14 @@ let a: System.Uri = Book.author
 The vocabulary can be either turtle text, a local file or a web resource like in the example above.
 The list of IRIs for which a property is generated is obtained with the following SPARQL query:
 
-    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-    SELECT ?uri ?label ?comment WHERE {
-      ?uri rdfs:label ?label ;
-           rdfs:comment ?comment .
-    }
+SELECT ?uri ?label ?comment WHERE {
+  ?uri rdfs:label ?label ;
+       rdfs:comment ?comment .
+}
+```
 
 You can provide your own SPARQL query to customize the set of properties.
 
@@ -32,7 +34,11 @@ For example it detects syntax errors in the SPARQL text:
 
 ![](https://github.com/giacomociti/iride/blob/master/tests/Ask.PNG)
 
-It also provides typed input parameters and (for SELECT queries) typed _Result_ objects.
+It also provides typed input parameters and (for SELECT queries) typed `Result` objects.
+In the following example the type provider generates a type `Q` with a static method `GetText` and a type `Q.Result`.
+The former to set input parameters (replacing _$INT_ with _42_ in the example).
+The latter is a typed wrapper of `SparqlResult` objects, with properties corresponding to 
+the output variables (`s` ans `IRI_p` in the example) of the query.
 
 ```fs
 type Q = SparqlQueryProvider<"SELECT * WHERE { ?s ?IRI_p $INT }">
