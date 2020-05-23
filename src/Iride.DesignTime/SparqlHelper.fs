@@ -4,6 +4,8 @@ open System.IO
 open VDS.RDF.Query
 open VDS.RDF.Parsing
 open VDS.RDF.Parsing.Tokens
+open VDS.RDF
+open System
 
 module SparqlHelper =
 
@@ -23,7 +25,7 @@ module SparqlHelper =
             token <- tokenizer.GetNextToken()
     }
     
-    let parameterNames commandText =
+    let getParameterNames commandText =
         let isParameter (token: string) = token.StartsWith "$"
         let getName (token: string) = token.Substring 1
         let pars, vars =
@@ -56,7 +58,7 @@ module SparqlHelper =
         | "BOOL" -> Boolean
         | _   -> Node
 
-    let bindings (query: SparqlQuery) parameterNames =
+    let getBindings (query: SparqlQuery) parameterNames =
         let variables variableNames =
             variableNames
             |> Seq.except parameterNames
@@ -66,32 +68,35 @@ module SparqlHelper =
         { Variables = variables algebra.FixedVariables
           OptionalVariables = variables algebra.FloatingVariables }            
 
-    let parameters parameterNames =
+    let getParameters parameterNames =
         parameterNames
         |> Seq.map (fun x -> { ParameterName = x; Type = knownDataType x })
         |> List.ofSeq
 
-    let isUri token = 
-        token = Token.URI ||
-        token = Token.QNAME
-
-    let check (nsMap: VDS.RDF.NamespaceMapper) allowedUris (sparql: string) =
-        let ns = [for p in nsMap.Prefixes -> (nsMap.GetNamespaceUri p).AbsoluteUri] |> Set.ofList
+    let getUnknownUris (namespaceMapper: NamespaceMapper) isUnkown sparql =
+        let namespaceUris =
+            namespaceMapper.Prefixes
+            |> Seq.map namespaceMapper.GetNamespaceUri
+            |> Seq.map (fun x -> x.AbsoluteUri)
+            |> Set.ofSeq
         [
             for token in tokens sparql do
                 match token.TokenType with
                 | Token.URI ->
-                    if ns.Contains token.Value |> not 
-                    then
-                        if allowedUris |> List.contains token.Value |> not 
-                        then yield token.Value
+                    if not (namespaceUris.Contains token.Value) && isUnkown token.Value 
+                    then yield token.Value
                 | Token.QNAME ->
                     match token.Value.Split ':' with
                     | [| prefix; x |] -> 
-                        let nsUri = nsMap.GetNamespaceUri prefix
-                        let absolute = System.Uri(nsUri, x).AbsoluteUri
-                        if allowedUris |> List.contains absolute  |> not 
+                        let nsUri = namespaceMapper.GetNamespaceUri prefix
+                        if isUnkown (Uri(nsUri, x).AbsoluteUri)
                         then yield token.Value
                     | _ -> ()
                 | _ -> ()
         ]
+
+    let checkSchema (namespaceMapper: NamespaceMapper) (sparql: string) (uris: Uri list) =
+        let knownUris = uris |> List.map (fun x -> x.AbsoluteUri) |> Set.ofList
+        let isUnkown uri = not (knownUris.Contains uri)
+        let unknownUris = getUnknownUris namespaceMapper isUnkown sparql
+        if unknownUris.Length > 0 then failwithf "Unknown Uris: %A\n Allowed: %A" unknownUris uris

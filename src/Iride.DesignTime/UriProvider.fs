@@ -1,4 +1,4 @@
-module IrideImplementation
+module UriProviderImplementation
 
 open System
 open System.Reflection
@@ -6,34 +6,34 @@ open Microsoft.FSharp.Quotations
 open FSharp.Core.CompilerServices
 open ProviderImplementation.ProvidedTypes
 open Iride
-
+open VDS.RDF
 
 [<TypeProvider>]
-type BasicGenerativeProvider (config : TypeProviderConfig) as this =
+type UriProvider (config : TypeProviderConfig) as this =
     inherit TypeProviderForNamespaces 
         (config, 
          assemblyReplacementMap = [("Iride.DesignTime", "Iride")],
          addDefaultProbingLocation = true)
     let ns = "Iride"
-    let asm = Assembly.GetExecutingAssembly()
+    let executingAssembly = Assembly.GetExecutingAssembly()
 
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
-    do assert (typeof<Iride.CommandRuntime>.Assembly.GetName().Name = asm.GetName().Name)  
+    do assert (typeof<CommandRuntime>.Assembly.GetName().Name = executingAssembly.GetName().Name)  
 
-    let createType typeName (schema: string) schemaQuery allValuesMethod =
-        let asm = ProvidedAssembly()
-        let result = ProvidedTypeDefinition(asm, ns, typeName, Some typeof<obj>, isErased=false)
+    let createType (typeName, schema, schemaQuery, allValuesMethod) =
+        let providedAssembly = ProvidedAssembly()
+        let result = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
         
         let providedProperties = [
-            for prop in RdfHelper.getGraphProperties config.ResolutionFolder schema schemaQuery do
-                let uri = prop.Uri.ToString()
+            for property in RdfHelper.getGraphProperties config.ResolutionFolder schema schemaQuery do
+                let uri = property.Uri.AbsoluteUri
                 let providedProperty = 
                     ProvidedProperty(
-                        propertyName = prop.Label, 
+                        propertyName = property.Label, 
                         propertyType = typeof<Uri>,
-                        getterCode = (fun _ -> <@@ Uri uri @@>), 
+                        getterCode = (fun _ -> <@@ UriFactory.Create uri @@>),
                         isStatic = true)
-                providedProperty.AddXmlDoc prop.Comment
+                providedProperty.AddXmlDoc property.Comment
                 yield providedProperty
         ]
 
@@ -51,18 +51,17 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
                     isStatic = true)
             result.AddMember providedMethod
 
-        asm.AddTypes [ result ]
+        providedAssembly.AddTypes [ result ]
         result
 
     let providerType = 
-        let result =
-            ProvidedTypeDefinition(asm, ns, "UriProvider", Some typeof<obj>, isErased = false)
+        let result = ProvidedTypeDefinition(executingAssembly, ns, "UriProvider", Some typeof<obj>, isErased=false)
         result.DefineStaticParameters([
                 ProvidedStaticParameter("Schema", typeof<string>)
                 ProvidedStaticParameter("SchemaQuery", typeof<string>, SchemaQuery.RdfResources)
                 ProvidedStaticParameter("AllValuesMethod", typeof<string>, "")
             ],
-            fun typeName args -> createType typeName (string args.[0]) (string args.[1]) (string args.[2]) )
+            fun typeName args -> createType (typeName, string args.[0], string args.[1], string args.[2]) )
 
         result.AddXmlDoc """<summary>Uri properties from IRIs in RDF vocabularies.</summary>
            <param name='Schema'>RDF vocabulary where to look for IRIs.</param>
@@ -72,7 +71,6 @@ type BasicGenerativeProvider (config : TypeProviderConfig) as this =
         result
 
     do this.AddNamespace(ns, [providerType])
-
 
 [<TypeProviderAssembly>]
 do ()
