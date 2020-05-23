@@ -2,32 +2,6 @@
 
 This library contains F# generative type providers built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
 
-## UriProvider
-
-_UriProvider_ creates `System.Uri` properties from IRIs in RDF vocabularies.
-
-```fs
-open Iride
-
-type Book = UriProvider<"https://schema.org/Book.ttl">
-
-let a: System.Uri = Book.author
-```
-
-The vocabulary can be either turtle text, a local file or a web resource like in the example above.
-The list of IRIs for which a property is generated is obtained with the following SPARQL query:
-
-```sparql
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-
-SELECT ?uri ?label ?comment WHERE {
-  ?uri rdfs:label ?label ;
-       rdfs:comment ?comment .
-}
-```
-
-You can provide your own SPARQL query to customize the set of properties.
-
 ## SparqlQueryProvider
 _SparqlQueryProvider_ checks SPARQL queries at design time, in the same vein of [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
 For example it detects syntax errors in the SPARQL text:
@@ -36,7 +10,7 @@ For example it detects syntax errors in the SPARQL text:
 
 It also provides typed input parameters and (for SELECT queries) typed `Result` objects.
 In the following example the type provider generates a type `Q` with a static method `GetText` and a type `Q.Result`.
-The former to set input parameters (replacing _$INT_ with _42_ in the example).
+The former allows to set input parameters (replacing _$INT_ with _42_ in the example).
 The latter is a typed wrapper of `SparqlResult` objects, with properties corresponding to 
 the output variables (`s` ans `IRI_p` in the example) of the query.
 
@@ -77,6 +51,31 @@ Cmd.GetText(
 |> printfn "%s"
 // INSERT DATA {<http://example.org/p1> <http://example.org/age> 25 }
 ```
+## UriProvider
+
+_UriProvider_ creates `System.Uri` properties from IRIs in RDF vocabularies.
+
+```fs
+open Iride
+
+type Book = UriProvider<"https://schema.org/Book.ttl">
+
+let a: System.Uri = Book.author
+```
+
+The vocabulary can be either turtle text, a local file or a web resource like in the example above.
+The list of IRIs for which a property is generated is obtained with the following SPARQL query:
+
+```sparql
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?uri ?label ?comment WHERE {
+  ?uri rdfs:label ?label ;
+       rdfs:comment ?comment .
+}
+```
+
+You can provide your own SPARQL query to customize the set of properties.
 
 ## Vocabulary checks
 To detect typos in property and class names, it is useful to restrict the accepted vocabulary in queries and commands:
