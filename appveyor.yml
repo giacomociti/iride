@@ -1,0 +1,15 @@
+version: 0.3.{build}
+image: Visual Studio 2019
+before_build:
+- ps:
+    dotnet tool restore
+    dotnet paket restore
+build_script:
+- ps:
+    dotnet build -c release
+    dotnet paket pack src/Iride --version $env:APPVEYOR_BUILD_VERSION
+test_script:
+- ps: dotnet test -c release
+artifacts:
+- path: src\Iride\*.nupkg
+  name: nuget

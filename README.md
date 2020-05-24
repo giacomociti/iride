@@ -1,10 +1,11 @@
 [![NuGet Badge](https://buildstats.info/nuget/Iride)](https://www.nuget.org/packages/Iride)
+[![Build status](https://ci.appveyor.com/api/projects/status/v69lb0ykwmm0iuf6/branch/master?svg=true)](https://ci.appveyor.com/project/giacomociti/iride/branch/master)
 
 This library contains F# generative type providers built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
 
 ## SparqlQueryProvider
 _SparqlQueryProvider_ checks SPARQL queries at design time, in the same vein of [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
-For example it detects syntax errors in the SPARQL text:
+For example it detects syntax errors in SPARQL text:
 
 ![](https://github.com/giacomociti/iride/blob/master/tests/Ask.PNG)
 
@@ -82,17 +83,4 @@ To detect typos in property and class names, it is useful to restrict the accept
 
 ![](https://github.com/giacomociti/iride/blob/master/tests/RdfSchema.PNG)
 
-In the example above the type provider reports an error because _BarZ_ is not present in the vocabulary specified by the _Schema_ parameter. 
-
-## Building
-The type provider has separate design-time and runtime assemblies.
-
-Paket is used to acquire the type provider SDK and build the nuget package.
-
-
-
-    .paket/paket.exe update
-
-    dotnet build -c release
-
-    .paket/paket.exe pack src/Iride --version 0.0.1
+In the example above the type provider reports an error because _BarZ_ is not present in the vocabulary specified by the _Schema_ parameter.
