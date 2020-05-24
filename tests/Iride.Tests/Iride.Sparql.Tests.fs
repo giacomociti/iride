@@ -6,6 +6,12 @@ open VDS.RDF.Storage
 open Iride
 open System
 open VDS.RDF.Query
+open System.Text.RegularExpressions
+
+type Assert with 
+    static member NearlyEqual(expected, actual) = 
+        let normalize text = Regex.Replace(text, @"\s+", " ")
+        Assert.AreEqual(normalize expected, normalize actual)
 
 let nodeFactory = NodeFactory()
 let literal = nodeFactory.CreateLiteralNode
@@ -26,7 +32,7 @@ type Ask = SparqlQueryProvider<"ASK WHERE {?s ?p $o}">
 [<Test>]
 let ``Can ask`` () =
     let actual = Ask.GetText(literal "aa")
-    Assert.AreEqual("""ASK WHERE {?s ?p "aa"}""", actual)
+    Assert.NearlyEqual("""ASK WHERE {?s ?p "aa"}""", actual)
     
 
 type Construct = SparqlQueryProvider<"CONSTRUCT {?s ?p $o} WHERE {?s ?p $o}">
@@ -34,7 +40,7 @@ type Construct = SparqlQueryProvider<"CONSTRUCT {?s ?p $o} WHERE {?s ?p $o}">
 [<Test>]
 let ``Can constuct`` () =
     let actual = Construct.GetText(literal "aa")
-    Assert.AreEqual("""CONSTRUCT {?s ?p "aa"} WHERE {?s ?p "aa"}""", actual)
+    Assert.NearlyEqual("""CONSTRUCT {?s ?p "aa"} WHERE {?s ?p "aa"}""", actual)
 
 
 type Select = SparqlQueryProvider<"SELECT * WHERE {?s ?p $o}">
@@ -53,7 +59,7 @@ type AskString = SparqlQueryProvider<"ASK WHERE {?s ?p $LIT}">
 [<Test>]
 let ``Can use typed parameters`` () =
     let actual = AskString.GetText("aa")
-    Assert.AreEqual("""ASK WHERE {?s ?p "aa"}""", actual)
+    Assert.NearlyEqual("""ASK WHERE {?s ?p "aa"}""", actual)
 
 
 type SelectOptional = SparqlQueryProvider<"""SELECT * WHERE  
@@ -131,7 +137,7 @@ let ``Can insert typed values`` () =
             :node "x" .
     }"""
 
-    Assert.AreEqual(expected.Trim(), actual.Trim())
+    Assert.NearlyEqual(expected.Trim(), actual.Trim())
 
 
 type TypedRecord = {
