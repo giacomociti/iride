@@ -10,7 +10,6 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="..\Iride\Iride.fs" />
     <Compile Include="RdfHelper.fs" />
     <Compile Include="SparqlHelper.fs" />

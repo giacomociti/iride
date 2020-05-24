@@ -27,10 +27,3 @@ references
 dependencies
   FSharp.Core >= LOCKEDVERSION
   dotNetRDF >= 2.4.0
-
-# put any package references here
-#  Some.Package
-#  framework: netcoreapp2.0
-#    System.Text.Encoding.CodePages >= LOCKEDVERSION
-#  framework: netstandard2.0
-#    System.Text.Encoding.CodePages >= LOCKEDVERSION
