@@ -4,21 +4,23 @@
 This library contains F# generative type providers built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
 
 ## SparqlQueryProvider
-_SparqlQueryProvider_ checks SPARQL queries at design time, in the same vein of [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
+_SparqlQueryProvider_ checks SPARQL queries at design time, in the same vein as [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
 For example it detects syntax errors in SPARQL text:
 
 ![](https://github.com/giacomociti/iride/blob/master/tests/Ask.PNG)
 
 It also provides typed input parameters and (for SELECT queries) typed `Result` objects.
-In the following example the type provider generates a type `Q` with a static method `GetText` and a type `Q.Result`.
+In the following example the type provider generates a type `Q` with a static method `GetText` and inner type `Q.Result`.
 The former allows to set input parameters (replacing _$INT_ with _42_ in the example).
 The latter is a typed wrapper of `SparqlResult` objects, with properties corresponding to 
-the output variables (`s` ans `IRI_p` in the example) of the query.
+the output variables (`s` and `IRI_p` in the example) of the query.
 
 ```fs
+open Iride
+
 type Q = SparqlQueryProvider<"SELECT * WHERE { ?s ?IRI_p $INT }">
 
-let exec: string -> SparqlResultSet = 
+let exec: string -> VDS.RDF.Query.SparqlResultSet = 
     failwith "Use your favourite SPARQL client"
 
 let query = Q.GetText(INT=42)
@@ -29,7 +31,7 @@ for r in exec(query) do
     // ....
 ```
 
-In SPARQL, output variables start with either '?' or '$', but in practice only '?' is used.
+In SPARQL, output variables start with either '?' or '$' but, in practice, only '?' is used.
 Hence this library hijacks the prefix '$' to indicate input parameters.
 
 Furthermore, upper case data type hints (e.g. IRI, INT) instruct the type provider to
@@ -57,8 +59,6 @@ Cmd.GetText(
 _UriProvider_ creates `System.Uri` properties from IRIs in RDF vocabularies.
 
 ```fs
-open Iride
-
 type Book = UriProvider<"https://schema.org/Book.ttl">
 
 let a: System.Uri = Book.author
