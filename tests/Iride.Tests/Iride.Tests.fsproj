@@ -11,6 +11,7 @@
     </None>
     <Compile Include="Iride.Tests.fs" />
     <Compile Include="Iride.Sparql.Tests.fs" />
+    <Compile Include="Iride.Graph.Tests.fs" />
     <None Include="paket.references" />
   </ItemGroup>
   <ItemGroup>

@@ -11,6 +11,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Iride\Iride.fs" />
+    <Compile Include="GraphHelper.fs" />
     <Compile Include="RdfHelper.fs" />
     <Compile Include="SparqlHelper.fs" />
     <Compile Include="..\..\paket-files\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fsi">
@@ -25,6 +26,7 @@
     <Compile Include="UriProvider.fs" />
     <Compile Include="SparqlCommandProvider.fs" />
     <Compile Include="SparqlQueryProvider.fs" />
+    <Compile Include="GraphProvider.fs" />
     <None Include="paket.references" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

@@ -3,30 +3,19 @@
 #r "Iride.dll"
 #r "dotNetRDF.dll"
 
-
 open Iride
+open VDS.RDF.Parsing
 
 [<Literal>]
-let schema = """
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+let sample = """
 @prefix : <http://example.org/> .
 
-:foo a rdf:Property .
-:Bar a rdfs:Class .
-
+:Foo a :Person ;
+    :age 100 ;
+    :job :j1 .
 """
 
-[<Literal>]
-let query = """
-PREFIX : <http://example.org/> 
-SELECT * WHERE { ?s :foo :BarZ }
-"""
-
-
-type Q = SparqlQueryProvider<query, Schema = schema>
-
-
-type Q = SparqlQueryProvider<"ASK WHER {?s ?p ?o}">
-
-
+type G = GraphProvider<sample>
+let graph = new VDS.RDF.Graph()
+TurtleParser().Load(graph, new System.IO.StringReader(sample))
+let actual = G(graph)
