@@ -31,6 +31,15 @@ type CommandRuntime =
     static member AsDateTimeOffset(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToDateTimeOffset
     static member AsBoolean(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToBoolean
 
+    static member AsNodeArray(ns: INode[]) = ns
+    static member AsUriArray(ns: INode[]) = Array.map CommandRuntime.AsUri ns
+    static member AsStringArray(ns: INode[]) = Array.map CommandRuntime.AsString ns
+    static member AsIntArray(ns: INode[]) = Array.map CommandRuntime.AsInt ns
+    static member AsDecimalArray(ns: INode[]) = Array.map CommandRuntime.AsDecimal ns
+    static member AsDateTimeArray(ns: INode[]) = Array.map CommandRuntime.AsDateTime ns
+    static member AsDateTimeOffsetArray(ns: INode[]) = Array.map CommandRuntime.AsDateTimeOffset ns
+    static member AsBooleanArray(ns: INode[]) = Array.map CommandRuntime.AsBoolean ns
+
 
 module SchemaQuery =
 

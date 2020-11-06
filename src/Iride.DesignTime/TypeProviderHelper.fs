@@ -7,8 +7,8 @@
     open ProviderImplementation.ProvidedTypes
 
     let getSparqlText resolutionFolder (sparqlParameter: string) =
-        if sparqlParameter.EndsWith ".rq" 
-        then 
+        if sparqlParameter.EndsWith ".rq"
+        then
             System.IO.Path.Combine(resolutionFolder, sparqlParameter)
             |> System.IO.File.ReadAllText
         else sparqlParameter
@@ -33,6 +33,16 @@
         | Time -> typeof<CommandRuntime>.GetMethod "AsDateTimeOffset"
         | Boolean -> typeof<CommandRuntime>.GetMethod "AsBoolean"
 
+    let getArrayConverterMethod = function
+        | Node -> typeof<CommandRuntime>.GetMethod "AsNodeArray"
+        | Iri -> typeof<CommandRuntime>.GetMethod "AsUriArray"
+        | Literal -> typeof<CommandRuntime>.GetMethod "AsStringArray"
+        | Integer -> typeof<CommandRuntime>.GetMethod "AsIntArray"
+        | Number -> typeof<CommandRuntime>.GetMethod "AsDecimalArray"
+        | Date -> typeof<CommandRuntime>.GetMethod "AsDateTimeArray"
+        | Time -> typeof<CommandRuntime>.GetMethod "AsDateTimeOffsetArray"
+        | Boolean -> typeof<CommandRuntime>.GetMethod "AsBooleanArray"
+
     let private dummyUri = System.Uri "http://iride.dummy"
 
     let getDefaultValue = function
@@ -51,9 +61,9 @@
             |> List.map (fun x -> x.ParameterName, ProvidedParameter(x.ParameterName, getType x.Type))
             |> List.unzip
         ProvidedMethod(
-            methodName = "GetText", 
-            parameters = parameters, 
-            returnType = typedefof<string>, 
+            methodName = "GetText",
+            parameters = parameters,
+            returnType = typedefof<string>,
             invokeCode = (fun pars ->
                 let converters = pars |> List.map (fun par ->
                     let m = typeof<CommandRuntime>.GetMethod("ToNode", [| par.Type |])
