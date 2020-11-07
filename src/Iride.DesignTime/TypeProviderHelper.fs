@@ -23,25 +23,22 @@
         | Time -> typeof<System.DateTimeOffset>
         | Boolean -> typeof<bool>
 
-    let getConverterMethod = function
-        | Node -> typeof<CommandRuntime>.GetMethod "AsNode"
-        | Iri -> typeof<CommandRuntime>.GetMethod "AsUri"
-        | Literal -> typeof<CommandRuntime>.GetMethod "AsString"
-        | Integer -> typeof<CommandRuntime>.GetMethod "AsInt"
-        | Number -> typeof<CommandRuntime>.GetMethod "AsDecimal"
-        | Date -> typeof<CommandRuntime>.GetMethod "AsDateTime"
-        | Time -> typeof<CommandRuntime>.GetMethod "AsDateTimeOffset"
-        | Boolean -> typeof<CommandRuntime>.GetMethod "AsBoolean"
+    let getConverterMethodExpression = function
+        | Node -> <@@ CommandRuntime.AsNode(Unchecked.defaultof<INode>) @@>
+        | Iri -> <@@ CommandRuntime.AsUri(Unchecked.defaultof<INode>) @@>
+        | Literal -> <@@ CommandRuntime.AsString(Unchecked.defaultof<INode>) @@>
+        | Integer -> <@@ CommandRuntime.AsInt(Unchecked.defaultof<INode>) @@>
+        | Number -> <@@ CommandRuntime.AsDecimal(Unchecked.defaultof<INode>) @@>
+        | Date -> <@@ CommandRuntime.AsDateTime(Unchecked.defaultof<INode>) @@>
+        | Time -> <@@ CommandRuntime.AsDateTimeOffset(Unchecked.defaultof<INode>) @@>
+        | Boolean -> <@@ CommandRuntime.AsBoolean(Unchecked.defaultof<INode>) @@>
 
-    let getArrayConverterMethod = function
-        | Node -> typeof<CommandRuntime>.GetMethod "AsNodeArray"
-        | Iri -> typeof<CommandRuntime>.GetMethod "AsUriArray"
-        | Literal -> typeof<CommandRuntime>.GetMethod "AsStringArray"
-        | Integer -> typeof<CommandRuntime>.GetMethod "AsIntArray"
-        | Number -> typeof<CommandRuntime>.GetMethod "AsDecimalArray"
-        | Date -> typeof<CommandRuntime>.GetMethod "AsDateTimeArray"
-        | Time -> typeof<CommandRuntime>.GetMethod "AsDateTimeOffsetArray"
-        | Boolean -> typeof<CommandRuntime>.GetMethod "AsBooleanArray"
+    let getMethodInfo = function
+       | Patterns.Call(_, methodInfo, _) -> methodInfo
+       | _ -> failwith "Unexpected expression" 
+
+    let getConverterMethod =  getConverterMethodExpression >> getMethodInfo
+
 
     let private dummyUri = System.Uri "http://iride.dummy"
 

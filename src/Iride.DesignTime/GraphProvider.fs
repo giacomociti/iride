@@ -50,6 +50,10 @@ type GraphProvider (config : TypeProviderConfig) as this =
     | "http://www.w3.org/2001/XMLSchema#boolean" -> KnownDataType.Boolean
     | _ -> KnownDataType.Node
 
+    let getValuesMethodInfo elementType =
+        let methodInfo = TypeProviderHelper.getMethodInfo <@@ CommandRuntime.GetValues(Unchecked.defaultof<INode>, "", id) @@>
+        ProvidedTypeBuilder.MakeGenericMethod(methodInfo.GetGenericMethodDefinition(), [elementType])
+
     let createType (typeName, sample) =
         let providedAssembly = ProvidedAssembly()
         let providedType = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
@@ -67,48 +71,45 @@ type GraphProvider (config : TypeProviderConfig) as this =
             |> Array.map (fun x -> x.Name, ProvidedTypeDefinition(providedAssembly, ns, RdfHelper.getName x.Name, Some typeof<obj>, isErased=false))
             |> dict
 
-
+        for c in classes do
+            let t = types.[c.Name]
+            ignore <| addCtorWithField(t, "node", typeof<INode>)
 
         for c in classes do
             let t = types.[c.Name]
-            let nodeField = addCtorWithField(t, "node", typeof<INode>)
-
-            let getNodeArray this (property: Uri) =
-                let node = Expr.FieldGet(this, nodeField)
-                let propertyUri = property.AbsoluteUri
-                <@@ 
-                    let n = (%%node : INode) 
-                    let p = n.Graph.GetUriNode(Uri propertyUri)
-                    n.Graph.GetTriplesWithSubjectPredicate(n, p) |> Seq.map (fun x -> x.Object) |> Seq.toArray
-                @@>
+            let nodeField = t.GetField("_node", BindingFlags.NonPublic ||| BindingFlags.Instance)
 
             c.Properties
             |> Seq.map (fun p ->
                 match p.Value with
                 | GraphHelper.PropertyType.Class x -> 
-                    let resultElementType = types.[x] :> Type
-                    //let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<seq<_>>, [resultElementType])
-                    ProvidedProperty(RdfHelper.getName p.Key, resultElementType.MakeArrayType(), getterCode = function
+                    let elementType = types.[x] :> Type
+                    let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<seq<_>>, [elementType])
+                    let getValuesMethod = getValuesMethodInfo elementType
+                    let predicateUri = Expr.Value p.Key.AbsoluteUri
+                    let x = Var("x", typeof<INode>)
+                    let ctor = elementType.GetConstructor([| typeof<INode> |])
+                    let objectConverter = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
+                    ProvidedProperty(RdfHelper.getName p.Key, resultType, getterCode = function
                     | [this] -> 
-                        let nodes = getNodeArray this p.Key
-                        let x = Var("x", typeof<INode>)
-                        let ctor = resultElementType.GetConstructor([| typeof<INode> |])
-                        let lambda = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
-                        let mi = 
-                            match <@@ CommandRuntime.AsArray([||], id) @@> with
-                            | Patterns.Call(_, m, _) -> m
-                            | _ -> failwith "NO"
-                        let genM = mi.GetGenericMethodDefinition()
-                        let mm = ProvidedTypeBuilder.MakeGenericMethod(genM, [resultElementType])
-                        Expr.Call(mm, [nodes; lambda])
-                        //<@@ Array.map (%%lambda) (%%nodes: INode[]) @@>
+                        let subject = Expr.FieldGet(this, nodeField)
+                        Expr.Call(getValuesMethod, [subject; predicateUri; objectConverter])
                     | _ -> failwith "Expected a single parameter")
                 | GraphHelper.PropertyType.Literal x ->
-                    let knownType = literalType x.AbsoluteUri
-                    let resultElementType = TypeProviderHelper.getType knownType
-                    ProvidedProperty(RdfHelper.getName p.Key, resultElementType.MakeArrayType(), getterCode = function
-                    | [this] -> Expr.Call(getArrayConverterMethod knownType, [getNodeArray this p.Key])
+                    let knownDataType = literalType x.AbsoluteUri
+                    let elementType = TypeProviderHelper.getType knownDataType
+                    let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<seq<_>>, [elementType])
+                    let getValuesMethod = getValuesMethodInfo elementType
+                    let predicateUri = Expr.Value p.Key.AbsoluteUri
+                    let converterMethodInfo = getConverterMethod knownDataType
+                    let x = Var("x", typeof<INode>)
+                    let objectConverter = Expr.Lambda(x, Expr.Call(converterMethodInfo, [Expr.Var x]))
+                    ProvidedProperty(RdfHelper.getName p.Key, resultType, getterCode = function
+                    | [this] -> 
+                        let subject = Expr.FieldGet(this, nodeField)
+                        Expr.Call(getValuesMethod, [subject; predicateUri; objectConverter])
                     | _ -> failwith "Expected a single parameter"))
+                    
             |> Seq.toList
             |> t.AddMembers
 

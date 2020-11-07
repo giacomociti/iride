@@ -29,14 +29,14 @@ let ``Can load literals`` () =
     TurtleParser().Load(graph, new IO.StringReader(sample1))
     let foo = graph.GetUriNode(":Foo")
     let p = G1.Person(foo)
-    Assert.AreEqual (p.Type.[0], graph.GetUriNode(":Person"))
-    Assert.AreEqual(100, p.Age |> Array.exactlyOne)
-    Assert.AreEqual(3.4, p.Num |> Array.exactlyOne)
-    Assert.True(p.Nice |> Array.exactlyOne)
-    Assert.AreEqual(DateTime(2000,1,1), p.Dob |> Array.exactlyOne)
-    Assert.AreEqual(DateTimeOffset(DateTime(2016,12,1, 15, 31, 10), TimeSpan.FromHours(-5.)), p.Time |> Array.exactlyOne)
-    Assert.AreEqual("bob", p.Name |> Array.exactlyOne)
-    Assert.AreEqual(Uri "http://example.org/bar", (p.Other |> Array.exactlyOne :?> IUriNode).Uri)
+    Assert.AreEqual (p.Type |> Seq.exactlyOne, graph.GetUriNode(":Person"))
+    Assert.AreEqual(100, p.Age |> Seq.exactlyOne)
+    Assert.AreEqual(3.4, p.Num |> Seq.exactlyOne)
+    Assert.True(p.Nice |> Seq.exactlyOne)
+    Assert.AreEqual(DateTime(2000,1,1), p.Dob |> Seq.exactlyOne)
+    Assert.AreEqual(DateTimeOffset(DateTime(2016,12,1, 15, 31, 10), TimeSpan.FromHours(-5.)), p.Time |> Seq.exactlyOne)
+    Assert.AreEqual("bob", p.Name |> Seq.exactlyOne)
+    Assert.AreEqual(Uri "http://example.org/bar", (p.Other |> Seq.exactlyOne :?> IUriNode).Uri)
 
 [<Literal>]
 let sample2 = """
@@ -59,7 +59,7 @@ let ``Can load objects`` () =
     TurtleParser().Load(graph, new IO.StringReader(sample2))
     let foo = graph.GetUriNode(":Foo")
     let p = G2.Person(foo)
-    let c = p.LivesIn |> Array.exactlyOne
-    Assert.AreEqual("Pisa", c.Name |> Array.exactlyOne)
-    Assert.AreEqual(10000, c.Population |> Array.exactlyOne)
-    ()
+    let c = p.LivesIn |> Seq.exactlyOne
+    Assert.AreEqual("Pisa", c.Name |> Seq.exactlyOne)
+    Assert.AreEqual(10000, c.Population |> Seq.exactlyOne)
+    

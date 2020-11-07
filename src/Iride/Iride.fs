@@ -5,7 +5,7 @@ open VDS.RDF.Query
 open System.Xml
 
 type CommandRuntime =
-    static member NodeFactory = NodeFactory()        
+    static member NodeFactory = NodeFactory()
 
     static member GetCmdText(commandText: string, parameterNames: string list, parameterValues: INode array) =
         let sps = SparqlParameterizedString commandText
@@ -31,16 +31,11 @@ type CommandRuntime =
     static member AsDateTimeOffset(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToDateTimeOffset
     static member AsBoolean(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToBoolean
 
-    static member AsNodeArray(ns: INode[]) = ns
-    static member AsUriArray(ns: INode[]) = Array.map CommandRuntime.AsUri ns
-    static member AsStringArray(ns: INode[]) = Array.map CommandRuntime.AsString ns
-    static member AsIntArray(ns: INode[]) = Array.map CommandRuntime.AsInt ns
-    static member AsDecimalArray(ns: INode[]) = Array.map CommandRuntime.AsDecimal ns
-    static member AsDateTimeArray(ns: INode[]) = Array.map CommandRuntime.AsDateTime ns
-    static member AsDateTimeOffsetArray(ns: INode[]) = Array.map CommandRuntime.AsDateTimeOffset ns
-    static member AsBooleanArray(ns: INode[]) = Array.map CommandRuntime.AsBoolean ns
+    static member GetValues(subject: INode, predicateUri: string, objectConverter) =
+        let predicate = subject.Graph.GetUriNode(UriFactory.Create predicateUri)
+        subject.Graph.GetTriplesWithSubjectPredicate(subject, predicate)
+        |> Seq.map (fun x -> objectConverter(x.Object))
 
-    static member AsArray(ns: INode[], f) = Array.map f ns
 
 module SchemaQuery =
 
@@ -71,7 +66,7 @@ module SchemaQuery =
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
         SELECT ?uri ?label ?comment WHERE {
-          ?uri a rdfs:Class 
+          ?uri a rdfs:Class
           OPTIONAL { ?uri rdfs:label ?label }
           OPTIONAL { ?uri rdfs:comment ?comment }
         }
@@ -79,11 +74,11 @@ module SchemaQuery =
 
     [<Literal>]
     let RdfPropertiesAndClasses = """
-       PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
-       PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
-       
+       PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+       PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
        SELECT ?uri ?label ?comment WHERE {
-           ?uri a ?x 
+           ?uri a ?x
            VALUES (?x) { (rdf:Property) (rdfs:Class) }
            OPTIONAL { ?uri rdfs:label ?label }
            OPTIONAL { ?uri rdfs:comment ?comment }
