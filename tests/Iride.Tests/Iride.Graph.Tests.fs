@@ -47,15 +47,19 @@ let sample2 = """
     :age 100 ;
     :livesIn :Bar .
 :Bar a :City ;
+    :name "Pisa" ;
     :population 10000 .
 """
 
-//type G2 = GraphProvider<sample2>
+type G2 = GraphProvider<sample2>
 
-//[<Test>]
-//let ``Can load objects`` () =
-//    let graph = new Graph()
-//    TurtleParser().Load(graph, new IO.StringReader(sample2))
-//    let foo = graph.GetUriNode(":Foo")
-//    let p = G2.Person(foo)
-//    ()
+[<Test>]
+let ``Can load objects`` () =
+    let graph = new Graph()
+    TurtleParser().Load(graph, new IO.StringReader(sample2))
+    let foo = graph.GetUriNode(":Foo")
+    let p = G2.Person(foo)
+    let c = p.LivesIn |> Array.exactlyOne
+    Assert.AreEqual("Pisa", c.Name |> Array.exactlyOne)
+    Assert.AreEqual(10000, c.Population |> Array.exactlyOne)
+    ()

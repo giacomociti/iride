@@ -87,13 +87,21 @@ type GraphProvider (config : TypeProviderConfig) as this =
                 match p.Value with
                 | GraphHelper.PropertyType.Class x -> 
                     let resultElementType = types.[x] :> Type
+                    //let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<seq<_>>, [resultElementType])
                     ProvidedProperty(RdfHelper.getName p.Key, resultElementType.MakeArrayType(), getterCode = function
                     | [this] -> 
                         let nodes = getNodeArray this p.Key
                         let x = Var("x", typeof<INode>)
                         let ctor = resultElementType.GetConstructor([| typeof<INode> |])
                         let lambda = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
-                        <@@ Array.map (%%lambda) (%%nodes: INode[]) @@>
+                        let mi = 
+                            match <@@ CommandRuntime.AsArray([||], id) @@> with
+                            | Patterns.Call(_, m, _) -> m
+                            | _ -> failwith "NO"
+                        let genM = mi.GetGenericMethodDefinition()
+                        let mm = ProvidedTypeBuilder.MakeGenericMethod(genM, [resultElementType])
+                        Expr.Call(mm, [nodes; lambda])
+                        //<@@ Array.map (%%lambda) (%%nodes: INode[]) @@>
                     | _ -> failwith "Expected a single parameter")
                 | GraphHelper.PropertyType.Literal x ->
                     let knownType = literalType x.AbsoluteUri

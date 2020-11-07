@@ -40,6 +40,7 @@ type CommandRuntime =
     static member AsDateTimeOffsetArray(ns: INode[]) = Array.map CommandRuntime.AsDateTimeOffset ns
     static member AsBooleanArray(ns: INode[]) = Array.map CommandRuntime.AsBoolean ns
 
+    static member AsArray(ns: INode[], f) = Array.map f ns
 
 module SchemaQuery =
 
