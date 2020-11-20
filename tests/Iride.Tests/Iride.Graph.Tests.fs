@@ -57,8 +57,8 @@ type G2 = GraphProvider<sample2>
 let ``Can load objects`` () =
     let graph = new Graph()
     TurtleParser().Load(graph, new IO.StringReader(sample2))
-    let foo = graph.GetUriNode(":Foo")
-    let p = G2.Person(foo)
+    let p = G2.Person.Get(graph) |> Seq.exactlyOne
+    Assert.AreEqual(Uri "http://example.org/Foo", (p.Node :?> IUriNode).Uri)
     let c = p.LivesIn |> Seq.exactlyOne
     Assert.AreEqual("Pisa", c.Name |> Seq.exactlyOne)
     Assert.AreEqual(10000, c.Population |> Seq.exactlyOne)

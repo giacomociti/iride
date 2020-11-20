@@ -36,6 +36,11 @@ type CommandRuntime =
         subject.Graph.GetTriplesWithSubjectPredicate(subject, predicate)
         |> Seq.map (fun x -> objectConverter(x.Object))
 
+    static member GetInstances(graph: IGraph, classUri: string, subjectConverter) =
+        let typeNode = graph.GetUriNode(UriFactory.Create "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+        let classNode = graph.GetUriNode(UriFactory.Create classUri)
+        graph.GetTriplesWithPredicateObject(typeNode, classNode)
+        |> Seq.map (fun t -> subjectConverter(t.Subject))
 
 module SchemaQuery =
 

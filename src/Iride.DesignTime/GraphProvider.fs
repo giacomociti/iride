@@ -22,19 +22,6 @@ type GraphProvider (config : TypeProviderConfig) as this =
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
     do assert (typeof<CommandRuntime>.Assembly.GetName().Name = executingAssembly.GetName().Name)
 
-    let addCtorWithField (providedType: ProvidedTypeDefinition, fieldName, fieldType) =
-        let parameter = ProvidedParameter(fieldName, fieldType)
-        let field = ProvidedField("_" + fieldName, fieldType)
-        // TODO set as private readonly
-        providedType.AddMember field
-        //TODO add public getter?
-        ProvidedConstructor([parameter], invokeCode = function
-            | [this; arg] ->
-                Expr.FieldSet (this, field, arg)
-            | _ -> failwith "wrong ctor params")
-        |> providedType.AddMember 
-        
-
     let literalType = function
         | "http://www.w3.org/2001/XMLSchema#string" -> KnownDataType.Literal
         | "http://www.w3.org/2001/XMLSchema#integer" -> KnownDataType.Integer
@@ -44,30 +31,69 @@ type GraphProvider (config : TypeProviderConfig) as this =
         | "http://www.w3.org/2001/XMLSchema#boolean" -> KnownDataType.Boolean
         | _ -> KnownDataType.Node
 
-    let getValuesMethodInfo elementType =
-        let methodInfo = TypeProviderHelper.getMethodInfo <@@ CommandRuntime.GetValues(Unchecked.defaultof<INode>, "", id) @@>
-        ProvidedTypeBuilder.MakeGenericMethod(methodInfo.GetGenericMethodDefinition(), [elementType])
+    let makeGenericMethod args expr =
+        let mi = TypeProviderHelper.getMethodInfo(expr).GetGenericMethodDefinition()
+        ProvidedTypeBuilder.MakeGenericMethod(mi, args)
 
-    let createTypeWithField (providedAssembly, typeName, fieldName, fieldType) =
-        let result = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
-        addCtorWithField (result, fieldName, fieldType)
-        result
+    let getValuesMethodInfo elementType =
+        <@@ CommandRuntime.GetValues(Unchecked.defaultof<INode>, "", id) @@>
+        |> makeGenericMethod [elementType]
+
+    let getInstancesMethodInfo elementType =
+        <@@ CommandRuntime.GetInstances(Unchecked.defaultof<IGraph>, "", id) @@>
+        |> makeGenericMethod [elementType]
+
+
+    let createTypeForRdfClass (providedAssembly, (classType: GraphHelper.ClassType), propertyName) =
+        let typeName = RdfHelper.getName classType.Name
+        let propertyType = typeof<INode>
+        let providedType = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
+        let parameter = ProvidedParameter(RdfHelper.lowerInitial propertyName, propertyType)
+        let field = ProvidedField("_" + parameter.Name, propertyType) // TODO set as private readonly
+        providedType.AddMember field
+
+        ProvidedProperty(propertyName, propertyType, getterCode = function
+            | [this] -> Expr.FieldGet(this, field)
+            | _ -> failwith "wrong property params")
+        |> providedType.AddMember
+
+        ProvidedConstructor([parameter], invokeCode = function
+            | [this; arg] ->
+                Expr.FieldSet (this, field, arg)
+            | _ -> failwith "wrong ctor params")
+        |> providedType.AddMember 
+
+        ProvidedMethod("Get", 
+            parameters = [ProvidedParameter("graph", typeof<IGraph>)], 
+            returnType = ProvidedTypeBuilder.MakeGenericType(typedefof<seq<_>>, [providedType]), 
+            invokeCode = (function
+                | [graph] -> 
+                    let x = Var("x", typeof<INode>)
+                    let ctor = providedType.GetConstructor([| typeof<INode> |])
+                    let converter = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
+                    let getInstancesMethod = getInstancesMethodInfo providedType
+                    let classUri = Expr.Value classType.Name.AbsoluteUri
+                    Expr.Call(getInstancesMethod, [graph; classUri; converter])
+                | _ -> failwith "wrong method params"), 
+            isStatic = true)
+        |> providedType.AddMember
+        providedType
 
     let createType (typeName, sample) =
         let providedAssembly = ProvidedAssembly()
-        let providedType = createTypeWithField(providedAssembly, typeName, "graph", typeof<IGraph>)
-
+        let providedType = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
+        let nodePropertyName = "Node"
         let types = 
             sample
             |> RdfHelper.getGraph config.ResolutionFolder 
             |> GraphHelper.sample2classes
-            |> Seq.map (fun x -> x.Name, (x, createTypeWithField(providedAssembly, RdfHelper.getName x.Name, "node", typeof<INode>)))
+            |> Seq.map (fun x -> x.Name, (x, createTypeForRdfClass(providedAssembly, x, nodePropertyName)))
             |> dict
 
         for entry in types do
             let classDefinition = fst entry.Value
             let typeDefinition = snd entry.Value
-            let nodeField = typeDefinition.GetField("_node", BindingFlags.NonPublic ||| BindingFlags.Instance)
+            let nodeProperty = typeDefinition.GetProperty(nodePropertyName)
 
             classDefinition.Properties
             |> Seq.map (fun p ->
@@ -82,7 +108,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
                     let objectConverter = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
                     ProvidedProperty(RdfHelper.getName p.Key, resultType, getterCode = function
                     | [this] -> 
-                        let subject = Expr.FieldGet(this, nodeField)
+                        let subject = Expr.PropertyGet(this, nodeProperty)
                         Expr.Call(getValuesMethod, [subject; predicateUri; objectConverter])
                     | _ -> failwith "Expected a single parameter")
                 | GraphHelper.PropertyType.Literal x ->
@@ -96,7 +122,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
                     let objectConverter = Expr.Lambda(x, Expr.Call(converterMethodInfo, [Expr.Var x]))
                     ProvidedProperty(RdfHelper.getName p.Key, resultType, getterCode = function
                     | [this] -> 
-                        let subject = Expr.FieldGet(this, nodeField)
+                        let subject = Expr.PropertyGet(this, nodeProperty)
                         Expr.Call(getValuesMethod, [subject; predicateUri; objectConverter])
                     | _ -> failwith "Expected a single parameter"))
             |> Seq.toList
