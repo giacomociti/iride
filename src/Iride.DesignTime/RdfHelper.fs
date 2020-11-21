@@ -41,12 +41,13 @@ module RdfHelper =
                 yield { Uri = uri; Label = label; Comment = comment }
         ]
 
-
-    let tryParseTurtle (schema: string) =
+    let parseTurtle turtle =
         let graph = new Graph()
-        try 
-            TurtleParser().Load(graph, new IO.StringReader(schema))
-            Some graph
+        TurtleParser().Load(graph, new IO.StringReader(turtle))
+        graph
+
+    let tryParseTurtle turtle =
+        try Some (parseTurtle turtle)
         with _ -> None
      
     let getGraph resolutionFolder schema = 

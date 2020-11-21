@@ -6,6 +6,19 @@ open Iride
 open VDS.RDF
 open VDS.RDF.Parsing
 
+type System.Collections.Generic.IEnumerable<'a> with
+    member this.Single = Seq.exactlyOne this
+
+type INode with
+    member this.Uri = (this :?> IUriNode).Uri
+
+let parseTurtle turtle =
+    let graph = new Graph()
+    TurtleParser().Load(graph, new IO.StringReader(turtle))
+    graph
+
+
+
 [<Literal>]
 let sample1 = """
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -25,18 +38,16 @@ type G1 = GraphProvider<sample1>
 
 [<Test>]
 let ``Can load literals`` () =
-    let graph = new Graph()
-    TurtleParser().Load(graph, new IO.StringReader(sample1))
-    let foo = graph.GetUriNode(":Foo")
-    let p = G1.Person(foo)
-    Assert.AreEqual (p.Type |> Seq.exactlyOne, graph.GetUriNode(":Person"))
-    Assert.AreEqual(100, p.Age |> Seq.exactlyOne)
-    Assert.AreEqual(3.4, p.Num |> Seq.exactlyOne)
-    Assert.True(p.Nice |> Seq.exactlyOne)
-    Assert.AreEqual(DateTime(2000,1,1), p.Dob |> Seq.exactlyOne)
-    Assert.AreEqual(DateTimeOffset(DateTime(2016,12,1, 15, 31, 10), TimeSpan.FromHours(-5.)), p.Time |> Seq.exactlyOne)
-    Assert.AreEqual("bob", p.Name |> Seq.exactlyOne)
-    Assert.AreEqual(Uri "http://example.org/bar", (p.Other |> Seq.exactlyOne :?> IUriNode).Uri)
+    let graph = parseTurtle sample1
+    let p = G1.Person.Get(graph).Single
+    Assert.AreEqual (p.Type.Single, graph.GetUriNode(":Person"))
+    Assert.AreEqual(100, p.Age.Single)
+    Assert.AreEqual(3.4, p.Num.Single)
+    Assert.True(p.Nice.Single)
+    Assert.AreEqual(DateTime(2000,1,1), p.Dob.Single)
+    Assert.AreEqual(DateTimeOffset(DateTime(2016,12,1, 15,31,10), TimeSpan.FromHours(-5.)), p.Time.Single)
+    Assert.AreEqual("bob", p.Name.Single)
+    Assert.AreEqual(Uri "http://example.org/bar", (p.Other.Single :?> IUriNode).Uri)
 
 [<Literal>]
 let sample2 = """
@@ -55,11 +66,10 @@ type G2 = GraphProvider<sample2>
 
 [<Test>]
 let ``Can load objects`` () =
-    let graph = new Graph()
-    TurtleParser().Load(graph, new IO.StringReader(sample2))
-    let p = G2.Person.Get(graph) |> Seq.exactlyOne
-    Assert.AreEqual(Uri "http://example.org/Foo", (p.Node :?> IUriNode).Uri)
-    let c = p.LivesIn |> Seq.exactlyOne
-    Assert.AreEqual("Pisa", c.Name |> Seq.exactlyOne)
-    Assert.AreEqual(10000, c.Population |> Seq.exactlyOne)
+    let graph = parseTurtle sample2
+    let p = G2.Person.Get(graph).Single
+    Assert.AreEqual(Uri "http://example.org/Foo", p.Node.Uri)
+    let c = p.LivesIn.Single
+    Assert.AreEqual("Pisa", c.Name.Single)
+    Assert.AreEqual(10000, c.Population.Single)
     
