@@ -6,6 +6,9 @@ open System.Collections.Generic
 
 module GraphHelper =
 
+    type INode with
+        member this.Uri = (this :?> IUriNode).Uri
+
     type PropertyType = Literal of Uri | Class of Uri
 
     type ClassType = { Name: Uri; Properties: IDictionary<Uri, PropertyType> }
@@ -13,15 +16,15 @@ module GraphHelper =
     let schema2classes (schema: IGraph) =
         let classes =
              schema.Triples
-             |> Seq.groupBy (fun x -> (x.Subject :?> IUriNode).Uri)
+             |> Seq.groupBy (fun x -> x.Subject.Uri)
              |> dict
         classes
         |> Seq.map (fun entry ->
             let props =
                 entry.Value
                 |> Seq.map (fun x ->
-                    let pred = (x.Predicate :?> IUriNode).Uri
-                    let obj = (x.Object :?> IUriNode).Uri
+                    let pred = x.Predicate.Uri
+                    let obj = x.Object.Uri
                     let value =
                         if classes.ContainsKey obj 
                         then Class obj
@@ -43,5 +46,23 @@ module GraphHelper =
         :?> IGraph
 
     let sample2classes sample = sample |> sample2schema |> schema2classes
+
+    let parseRdfs (schema: IGraph) =
+        let graph =
+            schema.ExecuteQuery """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+
+            CONSTRUCT { 
+                ?c ?p ?v 
+            }
+            WHERE {
+                ?p rdfs:domain ?c ;
+                   rdfs:range ?v .
+            }
+            """
+            :?> IGraph
+        schema2classes graph
+        
+
 
 

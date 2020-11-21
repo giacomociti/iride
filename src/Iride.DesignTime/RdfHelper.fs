@@ -50,15 +50,15 @@ module RdfHelper =
         try Some (parseTurtle turtle)
         with _ -> None
      
-    let getGraph resolutionFolder schema = 
-        match tryParseTurtle schema with
+    let getGraph resolutionFolder turtle = 
+        match tryParseTurtle turtle with
         | Some graph -> graph
         | None ->
             let graph = new Graph()
-            let path = IO.Path.Combine(resolutionFolder, schema)
+            let path = IO.Path.Combine(resolutionFolder, turtle)
             if IO.File.Exists path
             then FileLoader.Load(graph, path)
-            else UriLoader.Load(graph, Uri schema)
+            else UriLoader.Load(graph, Uri turtle)
             graph
 
     let getGraphProperties resolutionFolder schema query =

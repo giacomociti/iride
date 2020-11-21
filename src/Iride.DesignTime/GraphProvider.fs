@@ -79,14 +79,17 @@ type GraphProvider (config : TypeProviderConfig) as this =
         |> providedType.AddMember
         providedType
 
-    let createType (typeName, sample) =
+    let createType (typeName, sample, schema) =
+        
         let providedAssembly = ProvidedAssembly()
         let providedType = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
         let nodePropertyName = "Node"
+        let f = RdfHelper.getGraph config.ResolutionFolder 
         let types = 
-            sample
-            |> RdfHelper.getGraph config.ResolutionFolder 
-            |> GraphHelper.sample2classes
+            match sample, schema with
+            | sample, "" -> f sample |> GraphHelper.sample2classes 
+            | "", schema -> f schema |> GraphHelper.parseRdfs
+            | _ -> failwith "Need either Sample or Schema"
             |> Seq.map (fun x -> x.Name, (x, createTypeForRdfClass(providedAssembly, x, nodePropertyName)))
             |> dict
 
@@ -135,13 +138,15 @@ type GraphProvider (config : TypeProviderConfig) as this =
 
     let providerType = 
         let result = ProvidedTypeDefinition(executingAssembly, ns, "GraphProvider", Some typeof<obj>, isErased=false)
-        let sample = ProvidedStaticParameter("Sample", typeof<string>)
+        let sample = ProvidedStaticParameter("Sample", typeof<string>, "")
+        let schema = ProvidedStaticParameter("Schema", typeof<string>, "")
         
-        result.DefineStaticParameters([sample], fun typeName args -> 
-            createType(typeName, string args.[0]))
+        result.DefineStaticParameters([sample;schema], fun typeName args -> 
+            createType(typeName, string args.[0], string args.[1]))
 
         result.AddXmlDoc """<summary>Sample RDF.</summary>
            <param name='Sample'>Sample RDF as turtle.</param>
+           <param name='Schema'>RDFS schema as turtle.</param>
          """
         result
 

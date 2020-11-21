@@ -73,3 +73,21 @@ let ``Can load objects`` () =
     Assert.AreEqual("Pisa", c.Name.Single)
     Assert.AreEqual(10000, c.Population.Single)
     
+type G3 = GraphProvider<Schema = """
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix : <http://example.org/> .
+
+:age rdfs:domain :Person ;
+    rdfs:range xsd:integer .
+""">
+
+[<Test>]
+let ``Can use schema`` () =
+    let graph = parseTurtle """
+    @prefix : <http://example.org/> .
+    :p1 a :Person; :age 10 .
+    """
+    let p = G3.Person.Get(graph).Single
+    Assert.AreEqual(Uri "http://example.org/p1", p.Node.Uri)
+    Assert.AreEqual(10, p.Age.Single)
