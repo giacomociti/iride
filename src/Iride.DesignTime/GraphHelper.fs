@@ -35,7 +35,7 @@ module GraphHelper =
     let sample2schema (sample: IGraph) =
         sample.ExecuteQuery """
             CONSTRUCT {
-                ?t1 ?p ?t2 .
+                ?t1 ?p ?t2
             }
             WHERE {
                 ?s a ?t1 .
@@ -51,13 +51,15 @@ module GraphHelper =
         let graph =
             schema.ExecuteQuery """
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+            PREFIX schema: <http://schema.org/> 
 
             CONSTRUCT { 
-                ?c ?p ?v 
+                ?t1 ?p ?t2
             }
             WHERE {
-                ?p rdfs:domain ?c ;
-                   rdfs:range ?v .
+                ?t1 rdfs:subClassOf* ?class .
+                ?p rdfs:domain|schema:domainIncludes ?class ;
+                   rdfs:range|schema:rangeIncludes ?t2 .
             }
             """
             :?> IGraph
