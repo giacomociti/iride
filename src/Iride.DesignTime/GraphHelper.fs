@@ -3,6 +3,7 @@
 open System
 open VDS.RDF
 open System.Collections.Generic
+open VDS.RDF.Query
 
 module GraphHelper =
 
@@ -13,18 +14,37 @@ module GraphHelper =
 
     type ClassType = { Name: Uri; Properties: IDictionary<Uri, PropertyType> }
 
-    let parseClasses (schema: IGraph) =
+    //let parseClasses (schema: IGraph) =
+    //    let classes =
+    //         schema.Triples
+    //         |> Seq.groupBy (fun x -> x.Subject.Uri)
+    //         |> dict
+    //    classes
+    //    |> Seq.map (fun entry ->
+    //        let props =
+    //            entry.Value
+    //            |> Seq.map (fun x ->
+    //                let pred = x.Predicate.Uri
+    //                let obj = x.Object.Uri
+    //                let value =
+    //                    if classes.ContainsKey obj 
+    //                    then Class obj
+    //                    else Literal obj
+    //                pred, value)
+    //        { Name = entry.Key; Properties = dict props })
+
+    let parseClasses (schema: SparqlResultSet) =
         let classes =
-             schema.Triples
-             |> Seq.groupBy (fun x -> x.Subject.Uri)
-             |> dict
+                schema.Results
+                |> Seq.groupBy (fun x -> x.["t1"].Uri)
+                |> dict
         classes
         |> Seq.map (fun entry ->
             let props =
                 entry.Value
                 |> Seq.map (fun x ->
-                    let pred = x.Predicate.Uri
-                    let obj = x.Object.Uri
+                    let pred = x.["p"].Uri
+                    let obj = x.["t2"].Uri
                     let value =
                         if classes.ContainsKey obj 
                         then Class obj
@@ -33,9 +53,7 @@ module GraphHelper =
             { Name = entry.Key; Properties = dict props })
 
     let sampleQuery = """
-        CONSTRUCT {
-            ?t1 ?p ?t2
-        }
+        SELECT ?t1 ?p ?t2
         WHERE {
             ?s a ?t1 .
             ?s ?p ?o .
@@ -47,9 +65,7 @@ module GraphHelper =
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
         PREFIX schema: <http://schema.org/> 
 
-        CONSTRUCT { 
-            ?t1 ?p ?t2
-        }
+        SELECT ?t1 ?p ?t2
         WHERE {
             ?t1 rdfs:subClassOf* ?class .
             ?p rdfs:domain|schema:domainIncludes ?class ;
@@ -57,7 +73,7 @@ module GraphHelper =
         }"""
 
     let parse (query: string) (graph: IGraph) = 
-        graph.ExecuteQuery query :?> IGraph
+        graph.ExecuteQuery query :?> SparqlResultSet
         |> parseClasses
 
     let sample2classes sample = parse sampleQuery sample
