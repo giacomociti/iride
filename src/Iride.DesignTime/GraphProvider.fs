@@ -88,7 +88,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
         let types = 
             match sample, schema with
             | sample, "" -> f sample |> GraphHelper.sample2classes 
-            | "", schema -> f schema |> GraphHelper.parseRdfs
+            | "", schema -> f schema |> GraphHelper.schema2classes
             | _ -> failwith "Need either Sample or Schema"
             |> Seq.map (fun x -> x.Name, (x, createTypeForRdfClass(providedAssembly, x, nodePropertyName)))
             |> dict
