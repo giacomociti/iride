@@ -118,10 +118,28 @@ let ``Can add literal property`` () =
     let graph = new Graph()
     let nodeUri = Uri "http://example.org/p1"
     let p = G3.Person.Add(graph, graph.CreateUriNode(nodeUri))
+    Assert.IsEmpty(p.Age)
+
     p.Age.Add(25)
     Assert.AreEqual(25, p.Age.Single)
-    //Assert.AreEqual(nodeUri, p.Node.Uri)
-    //let triple = graph.Triples.Single
-    //Assert.AreEqual(nodeUri, triple.Subject.Uri)
-    //Assert.AreEqual(typeUri, triple.Predicate.Uri)
-    //Assert.AreEqual(classUri, triple.Object.Uri)
+
+    p.Age.Add(26)
+    Assert.AreEqual(set [25; 26], set p.Age)
+
+
+[<Test>]
+let ``Can add property`` () =
+    let graph = new Graph()
+    let personUri = Uri "http://example.org/p1"
+    let p = G2.Person.Add(graph, graph.CreateUriNode(personUri))
+    Assert.IsEmpty(p.LivesIn)
+
+    let c1 = G2.City.Add(graph, graph.CreateUriNode(Uri "http://example.org/c1"))
+    p.LivesIn.Add(c1)
+    Assert.AreEqual(c1, p.LivesIn.Single)
+
+    let c2 = G2.City.Add(graph, graph.CreateUriNode(Uri "http://example.org/c2"))
+    p.LivesIn.Add(c2)
+    Assert.AreEqual(2,  Seq.length p.LivesIn)
+    Assert.Contains(c1, Seq.toArray p.LivesIn)
+    Assert.Contains(c2, Seq.toArray p.LivesIn)

@@ -31,10 +31,7 @@ type CommandRuntime =
     static member AsDateTimeOffset(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToDateTimeOffset
     static member AsBoolean(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToBoolean
 
-    static member GetValues(subject: INode, predicateUri: string, objectConverter) =
-        let predicate = subject.Graph.GetUriNode(UriFactory.Create predicateUri)
-        subject.Graph.GetTriplesWithSubjectPredicate(subject, predicate)
-        |> Seq.map (fun x -> objectConverter(x.Object))
+
 
     static member GetInstances(graph: IGraph, classUri: string, subjectConverter) =
         let typeNode = graph.GetUriNode(UriFactory.Create "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
@@ -49,16 +46,19 @@ type CommandRuntime =
         subjectConverter(subject)
 
 type PropertyValues<'a>(subject: INode, predicateUri: string, objectConverter, nodeExtracor) =
+    let predicate = subject.Graph.CreateUriNode(UriFactory.Create predicateUri)
+    let getValues() =
+        subject.Graph.GetTriplesWithSubjectPredicate(subject, predicate)
+        |> Seq.map (fun x -> objectConverter(x.Object))
+
     interface seq<'a> with
         member _.GetEnumerator() = 
-            CommandRuntime.GetValues(subject, predicateUri, objectConverter).GetEnumerator() : System.Collections.Generic.IEnumerator<'a>
+            getValues().GetEnumerator() : System.Collections.Generic.IEnumerator<'a>
         member _.GetEnumerator() = 
-            CommandRuntime.GetValues(subject, predicateUri, objectConverter).GetEnumerator() :> System.Collections.IEnumerator
+            getValues().GetEnumerator() :> System.Collections.IEnumerator
 
     member _.Add(item: 'a) =
-        let node = nodeExtracor item
-        let predicate = subject.Graph.CreateUriNode(UriFactory.Create predicateUri)
-        subject.Graph.Assert(subject, predicate, node)
+        subject.Graph.Assert(subject, predicate, nodeExtracor item)
 
 module SchemaQuery =
 
