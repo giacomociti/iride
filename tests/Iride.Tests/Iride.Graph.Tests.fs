@@ -91,3 +91,16 @@ let ``Can use schema`` () =
     let p = G3.Person.Get(graph).Single
     Assert.AreEqual(Uri "http://example.org/p1", p.Node.Uri)
     Assert.AreEqual(10, p.Age.Single)
+
+[<Test>]
+let ``Can add instance`` () =
+    let graph = new Graph()
+    let nodeUri = Uri "http://example.org/p1"
+    let classUri = Uri "http://example.org/Person"
+    let typeUri = Uri "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+    let p = G3.Person.Add(graph, graph.CreateUriNode(nodeUri))
+    Assert.AreEqual(nodeUri, p.Node.Uri)
+    let triple = graph.Triples.Single
+    Assert.AreEqual(nodeUri, triple.Subject.Uri)
+    Assert.AreEqual(typeUri, triple.Predicate.Uri)
+    Assert.AreEqual(classUri, triple.Object.Uri)

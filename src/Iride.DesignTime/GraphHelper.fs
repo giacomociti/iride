@@ -14,25 +14,6 @@ module GraphHelper =
 
     type ClassType = { Name: Uri; Properties: IDictionary<Uri, PropertyType> }
 
-    //let parseClasses (schema: IGraph) =
-    //    let classes =
-    //         schema.Triples
-    //         |> Seq.groupBy (fun x -> x.Subject.Uri)
-    //         |> dict
-    //    classes
-    //    |> Seq.map (fun entry ->
-    //        let props =
-    //            entry.Value
-    //            |> Seq.map (fun x ->
-    //                let pred = x.Predicate.Uri
-    //                let obj = x.Object.Uri
-    //                let value =
-    //                    if classes.ContainsKey obj 
-    //                    then Class obj
-    //                    else Literal obj
-    //                pred, value)
-    //        { Name = entry.Key; Properties = dict props })
-
     let parseClasses (schema: SparqlResultSet) =
         let classes =
                 schema.Results

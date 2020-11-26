@@ -43,40 +43,66 @@ type GraphProvider (config : TypeProviderConfig) as this =
         <@@ CommandRuntime.GetInstances(Unchecked.defaultof<IGraph>, "", id) @@>
         |> makeGenericMethod [elementType]
 
+    let addInstanceMethodInfo elementType =
+        <@@ CommandRuntime.AddInstance(Unchecked.defaultof<IGraph>, Unchecked.defaultof<INode>, "", id) @@>
+        |> makeGenericMethod [elementType]
 
-    let createTypeForRdfClass (providedAssembly, (classType: GraphHelper.ClassType), propertyName) =
-        let typeName = RdfHelper.getName classType.Name
-        let propertyType = typeof<INode>
-        let providedType = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
-        let parameter = ProvidedParameter(RdfHelper.lowerInitial propertyName, propertyType)
-        let field = ProvidedField("_" + parameter.Name, propertyType) // TODO set as private readonly
+    let addConstructor (providedType: ProvidedTypeDefinition) (field: FieldInfo) =
+        let parameter = ProvidedParameter(field.Name.Substring 1, field.FieldType) // remove _ prefix
+        let ctor =
+            ProvidedConstructor([parameter], invokeCode = function
+                | [this; arg] ->
+                    Expr.FieldSet (this, field, arg)
+                | _ -> failwith "wrong ctor params")
+        providedType.AddMember ctor
+        ctor
+
+    let addPropertyWithBackingField (providedType: ProvidedTypeDefinition) propertyName =
+        let field = ProvidedField("_" + RdfHelper.lowerInitial propertyName, typeof<INode>) // TODO set as private readonly
         providedType.AddMember field
-
-        ProvidedProperty(propertyName, propertyType, getterCode = function
-            | [this] -> Expr.FieldGet(this, field)
-            | _ -> failwith "wrong property params")
+        ProvidedProperty(propertyName, field.FieldType, getterCode = function
+        | [this] -> Expr.FieldGet(this, field)
+        | _ -> failwith "wrong property params")
         |> providedType.AddMember
+        field
 
-        ProvidedConstructor([parameter], invokeCode = function
-            | [this; arg] ->
-                Expr.FieldSet (this, field, arg)
-            | _ -> failwith "wrong ctor params")
-        |> providedType.AddMember 
-
+    let addGetMethod (providedType: ProvidedTypeDefinition) (classType: GraphHelper.ClassType) ctor =
         ProvidedMethod("Get", 
             parameters = [ProvidedParameter("graph", typeof<IGraph>)], 
             returnType = ProvidedTypeBuilder.MakeGenericType(typedefof<seq<_>>, [providedType]), 
             invokeCode = (function
                 | [graph] -> 
                     let x = Var("x", typeof<INode>)
-                    let ctor = providedType.GetConstructor([| typeof<INode> |])
                     let converter = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
                     let getInstancesMethod = getInstancesMethodInfo providedType
                     let classUri = Expr.Value classType.Name.AbsoluteUri
                     Expr.Call(getInstancesMethod, [graph; classUri; converter])
-                | _ -> failwith "wrong method params"), 
+                | _ -> failwith "wrong method params for Get"), 
             isStatic = true)
         |> providedType.AddMember
+
+    let addAddMethod (providedType: ProvidedTypeDefinition) (classType: GraphHelper.ClassType) ctor =
+        ProvidedMethod("Add", 
+             parameters = [ProvidedParameter("graph", typeof<IGraph>); ProvidedParameter("node", typeof<INode>)], 
+             returnType = providedType, 
+             invokeCode = (function
+                 | [graph; node] -> 
+                     let x = Var("x", typeof<INode>)
+                     let converter = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
+                     let addInstanceMethod = addInstanceMethodInfo providedType
+                     let classUri = Expr.Value classType.Name.AbsoluteUri
+                     Expr.Call(addInstanceMethod, [graph; node; classUri; converter])
+                 | _ -> failwith "wrong method params for Add"), 
+             isStatic = true)
+         |> providedType.AddMember
+
+    let createTypeForRdfClass (providedAssembly, (classType: GraphHelper.ClassType), propertyName) =
+        let typeName = RdfHelper.getName classType.Name
+        let providedType = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
+        let field = addPropertyWithBackingField providedType propertyName
+        let ctor = addConstructor providedType field      
+        addGetMethod providedType classType ctor
+        addAddMethod providedType classType ctor
         providedType
 
     let createType (typeName, sample, schema) =
