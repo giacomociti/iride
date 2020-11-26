@@ -40,14 +40,15 @@ type G1 = GraphProvider<sample1>
 let ``Can load literals`` () =
     let graph = parseTurtle sample1
     let p = G1.Person.Get(graph).Single
-    Assert.AreEqual (p.Type.Single, graph.GetUriNode(":Person"))
+    Assert.AreEqual (Uri "http://example.org/Foo", p.Node.Uri)
+    Assert.AreEqual (Uri "http://example.org/Person", p.Type.Single.Uri)
     Assert.AreEqual(100, p.Age.Single)
     Assert.AreEqual(3.4, p.Num.Single)
     Assert.True(p.Nice.Single)
     Assert.AreEqual(DateTime(2000,1,1), p.Dob.Single)
     Assert.AreEqual(DateTimeOffset(DateTime(2016,12,1, 15,31,10), TimeSpan.FromHours(-5.)), p.Time.Single)
     Assert.AreEqual("bob", p.Name.Single)
-    Assert.AreEqual(Uri "http://example.org/bar", (p.Other.Single :?> IUriNode).Uri)
+    Assert.AreEqual(Uri "http://example.org/bar", p.Other.Single.Uri)
 
 [<Literal>]
 let sample2 = """
@@ -55,10 +56,8 @@ let sample2 = """
 @prefix : <http://example.org/> .
 
 :Foo a :Person ;
-    :age 100 ;
     :livesIn :Bar .
 :Bar a :City ;
-    :name "Pisa" ;
     :population 10000 .
 """
 
@@ -67,10 +66,9 @@ type G2 = GraphProvider<sample2>
 [<Test>]
 let ``Can load objects`` () =
     let graph = parseTurtle sample2
-    let p = G2.Person.Get(graph).Single
-    Assert.AreEqual(Uri "http://example.org/Foo", p.Node.Uri)
-    let c = p.LivesIn.Single
-    Assert.AreEqual("Pisa", c.Name.Single)
+    let c = G2.Person.Get(graph).Single.LivesIn.Single
+    Assert.AreEqual(Uri "http://example.org/Bar", c.Node.Uri)
+    Assert.AreEqual(Uri "http://example.org/City", c.Type.Single.Uri)
     Assert.AreEqual(10000, c.Population.Single)
 
 [<Test>]
@@ -103,20 +101,23 @@ let ``Can use schema`` () =
 [<Test>]
 let ``Can add instance`` () =
     let graph = new Graph()
+    Assert.IsEmpty(G3.Person.Get(graph))
+
     let nodeUri = Uri "http://example.org/p1"
-    let classUri = Uri "http://example.org/Person"
-    let typeUri = Uri "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+
     let p = G3.Person.Add(graph, graph.CreateUriNode(nodeUri))
+    Assert.AreEqual(p, G3.Person.Get(graph).Single)
     Assert.AreEqual(nodeUri, p.Node.Uri)
     let triple = graph.Triples.Single
     Assert.AreEqual(nodeUri, triple.Subject.Uri)
-    Assert.AreEqual(typeUri, triple.Predicate.Uri)
-    Assert.AreEqual(classUri, triple.Object.Uri)
+    Assert.AreEqual(Uri "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", triple.Predicate.Uri)
+    Assert.AreEqual(Uri "http://example.org/Person", triple.Object.Uri)
 
 [<Test>]
 let ``Can add literal property`` () =
     let graph = new Graph()
     let nodeUri = Uri "http://example.org/p1"
+
     let p = G3.Person.Add(graph, graph.CreateUriNode(nodeUri))
     Assert.IsEmpty(p.Age)
 

@@ -16,22 +16,24 @@ module GraphHelper =
 
     let parseClasses (schema: SparqlResultSet) =
         let classes =
-                schema.Results
-                |> Seq.groupBy (fun x -> x.["t1"].Uri)
-                |> dict
+            schema.Results
+            |> Seq.groupBy (fun x -> x.["t1"].Uri)
+            |> dict
         classes
-        |> Seq.map (fun entry ->
-            let props =
-                entry.Value
-                |> Seq.map (fun x ->
-                    let pred = x.["p"].Uri
-                    let obj = x.["t2"].Uri
-                    let value =
-                        if classes.ContainsKey obj 
-                        then Class obj
-                        else Literal obj
-                    pred, value)
-            { Name = entry.Key; Properties = dict props })
+        |> Seq.map (function 
+            KeyValue (classUri, properties) ->
+              { Name = classUri
+                Properties = 
+                    properties
+                    |> Seq.map (fun x ->
+                        let pred = x.["p"].Uri
+                        let obj = x.["t2"].Uri
+                        let value =
+                            if classes.ContainsKey obj 
+                            then Class obj
+                            else Literal obj
+                        pred, value)
+                    |> dict })
 
     let sampleQuery = """
         SELECT ?t1 ?p ?t2

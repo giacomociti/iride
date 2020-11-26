@@ -44,37 +44,37 @@ type GraphProvider (config : TypeProviderConfig) as this =
         |> makeGenericMethod [elementType]
 
     let overrideEquals (providedType: ProvidedTypeDefinition) property =
-        let getHashCode = ProvidedMethod("GetHashCode", [], typeof<int>, invokeCode = function
-            | [this] -> 
-                let node = Expr.PropertyGet(this, property)
-                <@@ (%%node: INode).GetHashCode() @@>
-            | _ -> failwith "unexpected args for GetHashCode")
-        getHashCode.AddMethodAttrs MethodAttributes.Virtual
-        providedType.AddMember getHashCode
-        match <@@ this.GetHashCode() @@> with
-        | Patterns.Call(_, m, _) -> providedType.DefineMethodOverride(getHashCode, m)
+        match <@@ "".GetHashCode() @@> with
+        | Patterns.Call(_, m, _) -> 
+            let getHashCode = ProvidedMethod(m.Name, [], m.ReturnType, invokeCode = function
+                | [this] -> 
+                    let node = Expr.PropertyGet(this, property)
+                    <@@ (%%node: INode).GetHashCode() @@>
+                | _ -> failwith "unexpected args for GetHashCode")
+            getHashCode.AddMethodAttrs MethodAttributes.Virtual
+            providedType.AddMember getHashCode
+            providedType.DefineMethodOverride(getHashCode, m)
         | _ -> failwith "unexpected pattern"
-
-        let equals = ProvidedMethod("Equals", [ProvidedParameter("obj", typeof<obj>)], typeof<bool>, invokeCode = function
-            | [this; obj] -> 
-                let other = Expr.Coerce(obj, providedType)
-                let otherNode = Expr.PropertyGet(other, property)
-                let thisNode = Expr.PropertyGet(this, property)
-                <@@ (%%thisNode:INode).Equals((%%otherNode:INode)) @@>
-            | _ -> failwith "unexpected args for Equals")
-        equals.AddMethodAttrs MethodAttributes.Virtual
-        providedType.AddMember equals
         match <@@ this.Equals(0) @@> with
-        | Patterns.Call(_, m, _) -> providedType.DefineMethodOverride(equals, m)
+        | Patterns.Call(_, m, _) -> 
+            let equals = ProvidedMethod(m.Name, [ProvidedParameter("obj", typeof<obj>)], typeof<bool>, invokeCode = function
+                | [this; obj] -> 
+                    let other = Expr.Coerce(obj, providedType)
+                    let otherNode = Expr.PropertyGet(other, property)
+                    let thisNode = Expr.PropertyGet(this, property)
+                    <@@ (%%thisNode:INode).Equals((%%otherNode:INode)) @@>
+                | _ -> failwith "unexpected args for Equals")
+            equals.AddMethodAttrs MethodAttributes.Virtual
+            providedType.AddMember equals
+            providedType.DefineMethodOverride(equals, m)
         | _ -> failwith "unexpected pattern"
 
     let addConstructor (providedType: ProvidedTypeDefinition) (field: FieldInfo) =
         let parameter = ProvidedParameter(field.Name, field.FieldType)
         let ctor =
             ProvidedConstructor([parameter], invokeCode = function
-                | [this; arg] ->
-                    Expr.FieldSet (this, field, arg)
-                | _ -> failwith "wrong ctor params")
+            | [this; arg] -> Expr.FieldSet (this, field, arg)
+            | _ -> failwith "wrong ctor params")
         providedType.AddMember ctor
         ctor
 
@@ -147,41 +147,38 @@ type GraphProvider (config : TypeProviderConfig) as this =
             |> Seq.map (fun x -> x.Name, (x, createTypeForRdfClass(providedAssembly, x, nodePropertyName)))
             |> dict
 
-        for entry in types do
-            let classDefinition = fst entry.Value
-            let typeDefinition = snd entry.Value
+        for (classDefinition, typeDefinition) in types.Values do
             let nodeProperty = typeDefinition.GetProperty(nodePropertyName)
-
             classDefinition.Properties
             |> Seq.map (fun p ->
                 match p.Value with
-                | GraphHelper.PropertyType.Class x -> 
-                    let elementType = snd types.[x] :> Type
+                | GraphHelper.PropertyType.Class classUri -> 
+                    let elementType = snd types.[classUri] :> Type
                     let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<PropertyValues<_>>, [elementType])
                     let predicateUri = Expr.Value p.Key.AbsoluteUri
-                    let x = Var("x", typeof<INode>)
+                    let n = Var("n", typeof<INode>)
                     let ctor = elementType.GetConstructor([| typeof<INode> |])
-                    let objectConverter = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
-                    let e = Var("e", elementType)
+                    let objectConverter = Expr.Lambda(n, Expr.NewObject(ctor, [Expr.Var n]))
+                    let x = Var("x", elementType)
                     let targetNodeProperty = elementType.GetProperty(nodePropertyName)
-                    let nodeExtractor = Expr.Lambda(e, Expr.PropertyGet(Expr.Var e, targetNodeProperty))
+                    let nodeExtractor = Expr.Lambda(x, Expr.PropertyGet(Expr.Var x, targetNodeProperty))
                     ProvidedProperty(RdfHelper.getName p.Key, resultType, getterCode = function
                     | [this] -> 
                         let subject = Expr.PropertyGet(this, nodeProperty)
                         let ctor = resultType.GetConstructors() |> Seq.exactlyOne
                         Expr.NewObject(ctor, [subject; predicateUri; objectConverter; nodeExtractor])
                     | _ -> failwith "Expected a single parameter")
-                | GraphHelper.PropertyType.Literal x ->
-                    let knownDataType = literalType x.AbsoluteUri
+                | GraphHelper.PropertyType.Literal literalTypeUri ->
+                    let knownDataType = literalType literalTypeUri.AbsoluteUri
                     let elementType = TypeProviderHelper.getType knownDataType
                     let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<PropertyValues<_>>, [elementType])
                     let predicateUri = Expr.Value p.Key.AbsoluteUri
                     let converterMethodInfo = getConverterMethod knownDataType
                     let nodeExtractorMethodInfo = getNodeExtractorMethod knownDataType
-                    let x = Var("x", typeof<INode>)
-                    let objectConverter = Expr.Lambda(x, Expr.Call(converterMethodInfo, [Expr.Var x]))
-                    let e = Var("e", elementType)
-                    let nodeExtractor = Expr.Lambda(e, Expr.Call(nodeExtractorMethodInfo, [Expr.Var e]))
+                    let n = Var("n", typeof<INode>)
+                    let objectConverter = Expr.Lambda(n, Expr.Call(converterMethodInfo, [Expr.Var n]))
+                    let x = Var("x", elementType)
+                    let nodeExtractor = Expr.Lambda(x, Expr.Call(nodeExtractorMethodInfo, [Expr.Var x]))
                     ProvidedProperty(RdfHelper.getName p.Key, resultType, getterCode = function
                     | [this] -> 
                         let subject = Expr.PropertyGet(this, nodeProperty)
@@ -191,7 +188,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
             |> Seq.toList
             |> typeDefinition.AddMembers
 
-        for t in types do providedType.AddMember (snd t.Value)
+        for (_, t) in types.Values do providedType.AddMember t
 
         providedAssembly.AddTypes [providedType]
         providedType
@@ -204,9 +201,9 @@ type GraphProvider (config : TypeProviderConfig) as this =
         result.DefineStaticParameters([sample;schema], fun typeName args -> 
             createType(typeName, string args.[0], string args.[1]))
 
-        result.AddXmlDoc """<summary>Sample RDF.</summary>
-           <param name='Sample'>Sample RDF as turtle.</param>
-           <param name='Schema'>RDFS schema as turtle.</param>
+        result.AddXmlDoc """<summary>Type provider of RDF classes.</summary>
+           <param name='Sample'>RDF Sample as Turtle.</param>
+           <param name='Schema'>RDF Schema as Turtle.</param>
          """
         result
 
