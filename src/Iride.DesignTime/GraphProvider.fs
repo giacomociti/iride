@@ -47,8 +47,33 @@ type GraphProvider (config : TypeProviderConfig) as this =
         <@@ CommandRuntime.AddInstance(Unchecked.defaultof<IGraph>, Unchecked.defaultof<INode>, "", id) @@>
         |> makeGenericMethod [elementType]
 
+    let overrideEquals (providedType: ProvidedTypeDefinition) property =
+        let getHashCode = ProvidedMethod("GetHashCode", [], typeof<int>, invokeCode = function
+            | [this] -> 
+                let node = Expr.PropertyGet(this, property)
+                <@@ (%%node: INode).GetHashCode() @@>
+            | _ -> failwith "unexpected args for GetHashCode")
+        getHashCode.AddMethodAttrs MethodAttributes.Virtual
+        providedType.AddMember getHashCode
+        match <@@ this.GetHashCode() @@> with
+        | Patterns.Call(_, m, _) -> providedType.DefineMethodOverride(getHashCode, m)
+        | _ -> failwith "unexpected pattern"
+
+        let equals = ProvidedMethod("Equals", [ProvidedParameter("obj", typeof<obj>)], typeof<bool>, invokeCode = function
+            | [this; obj] -> 
+                let other = Expr.Coerce(obj, providedType)
+                let otherNode = Expr.PropertyGet(other, property)
+                let thisNode = Expr.PropertyGet(this, property)
+                <@@ (%%thisNode:INode).Equals((%%otherNode:INode)) @@>
+            | _ -> failwith "unexpected args for Equals")
+        equals.AddMethodAttrs MethodAttributes.Virtual
+        providedType.AddMember equals
+        match <@@ this.Equals(0) @@> with
+        | Patterns.Call(_, m, _) -> providedType.DefineMethodOverride(equals, m)
+        | _ -> failwith "unexpected pattern"
+
     let addConstructor (providedType: ProvidedTypeDefinition) (field: FieldInfo) =
-        let parameter = ProvidedParameter(field.Name.Substring 1, field.FieldType) // remove _ prefix
+        let parameter = ProvidedParameter(field.Name, field.FieldType)
         let ctor =
             ProvidedConstructor([parameter], invokeCode = function
                 | [this; arg] ->
@@ -57,14 +82,19 @@ type GraphProvider (config : TypeProviderConfig) as this =
         providedType.AddMember ctor
         ctor
 
-    let addPropertyWithBackingField (providedType: ProvidedTypeDefinition) propertyName =
-        let field = ProvidedField("_" + RdfHelper.lowerInitial propertyName, typeof<INode>) // TODO set as private readonly
+    let addField (providedType: ProvidedTypeDefinition) name =
+        let field = ProvidedField(RdfHelper.lowerInitial name, typeof<INode>) // TODO set as private readonly
         providedType.AddMember field
-        ProvidedProperty(propertyName, field.FieldType, getterCode = function
-        | [this] -> Expr.FieldGet(this, field)
-        | _ -> failwith "wrong property params")
-        |> providedType.AddMember
         field
+
+    let addProperty (providedType: ProvidedTypeDefinition) (field: ProvidedField) =
+        let property =
+            let name = RdfHelper.upperInitial field.Name
+            ProvidedProperty(name, field.FieldType, getterCode = function
+            | [this] -> Expr.FieldGet(this, field)
+            | _ -> failwith "wrong property params")
+        providedType.AddMember property
+        property
 
     let addGetMethod (providedType: ProvidedTypeDefinition) (classType: GraphHelper.ClassType) ctor =
         ProvidedMethod("Get", 
@@ -99,8 +129,10 @@ type GraphProvider (config : TypeProviderConfig) as this =
     let createTypeForRdfClass (providedAssembly, (classType: GraphHelper.ClassType), propertyName) =
         let typeName = RdfHelper.getName classType.Name
         let providedType = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
-        let field = addPropertyWithBackingField providedType propertyName
+        let field = addField providedType propertyName
+        let property = addProperty providedType field
         let ctor = addConstructor providedType field      
+        overrideEquals providedType property
         addGetMethod providedType classType ctor
         addAddMethod providedType classType ctor
         providedType
