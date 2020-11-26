@@ -48,6 +48,17 @@ type CommandRuntime =
         graph.Assert(subject, typeNode, classNode)
         subjectConverter(subject)
 
+type PropertyValues<'a>(subject: INode, predicateUri: string, objectConverter, nodeExtracor) =
+    interface seq<'a> with
+        member _.GetEnumerator() = 
+            CommandRuntime.GetValues(subject, predicateUri, objectConverter).GetEnumerator() : System.Collections.Generic.IEnumerator<'a>
+        member _.GetEnumerator() = 
+            CommandRuntime.GetValues(subject, predicateUri, objectConverter).GetEnumerator() :> System.Collections.IEnumerator
+
+    member _.Add(item: 'a) =
+        let node = nodeExtracor item
+        let predicate = subject.Graph.CreateUriNode(UriFactory.Create predicateUri)
+        subject.Graph.Assert(subject, predicate, node)
 
 module SchemaQuery =
 

@@ -175,16 +175,20 @@ type GraphProvider (config : TypeProviderConfig) as this =
                 | GraphHelper.PropertyType.Literal x ->
                     let knownDataType = literalType x.AbsoluteUri
                     let elementType = TypeProviderHelper.getType knownDataType
-                    let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<seq<_>>, [elementType])
-                    let getValuesMethod = getValuesMethodInfo elementType
+                    let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<PropertyValues<_>>, [elementType])
                     let predicateUri = Expr.Value p.Key.AbsoluteUri
                     let converterMethodInfo = getConverterMethod knownDataType
+                    let nodeExtractorMethodInfo = getNodeExtractorMethod knownDataType
                     let x = Var("x", typeof<INode>)
                     let objectConverter = Expr.Lambda(x, Expr.Call(converterMethodInfo, [Expr.Var x]))
+                    let e = Var("e", elementType)
+                    let nodeExtractor = Expr.Lambda(e, Expr.Call(nodeExtractorMethodInfo, [Expr.Var e]))
+
                     ProvidedProperty(RdfHelper.getName p.Key, resultType, getterCode = function
                     | [this] -> 
                         let subject = Expr.PropertyGet(this, nodeProperty)
-                        Expr.Call(getValuesMethod, [subject; predicateUri; objectConverter])
+                        let ctor = resultType.GetConstructors() |> Seq.exactlyOne
+                        Expr.NewObject(ctor, [subject; predicateUri; objectConverter; nodeExtractor])
                     | _ -> failwith "Expected a single parameter"))
             |> Seq.toList
             |> typeDefinition.AddMembers

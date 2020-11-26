@@ -33,12 +33,23 @@
         | Time -> <@@ CommandRuntime.AsDateTimeOffset(Unchecked.defaultof<INode>) @@>
         | Boolean -> <@@ CommandRuntime.AsBoolean(Unchecked.defaultof<INode>) @@>
 
+    let getNodeExtractorMethodExpression = function
+        | Node -> <@@ CommandRuntime.ToNode(Unchecked.defaultof<INode>) @@>
+        | Iri -> <@@ CommandRuntime.ToNode(Unchecked.defaultof<System.Uri>) @@>
+        | Literal -> <@@ CommandRuntime.ToNode(Unchecked.defaultof<string>) @@>
+        | Integer -> <@@ CommandRuntime.ToNode(Unchecked.defaultof<int>) @@>
+        | Number -> <@@ CommandRuntime.ToNode(Unchecked.defaultof<decimal>) @@>
+        | Date -> <@@ CommandRuntime.ToNode(Unchecked.defaultof<System.DateTime>) @@>
+        | Time -> <@@ CommandRuntime.ToNode(Unchecked.defaultof<System.DateTimeOffset>) @@>
+        | Boolean -> <@@ CommandRuntime.ToNode(Unchecked.defaultof<bool>) @@>
+
     let getMethodInfo = function
        | Patterns.Call(_, methodInfo, _) -> methodInfo
        | _ -> failwith "Unexpected expression" 
 
     let getConverterMethod =  getConverterMethodExpression >> getMethodInfo
 
+    let getNodeExtractorMethod = getNodeExtractorMethodExpression >> getMethodInfo
 
     let private dummyUri = System.Uri "http://iride.dummy"
 

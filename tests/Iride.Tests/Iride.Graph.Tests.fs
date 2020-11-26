@@ -72,7 +72,7 @@ let ``Can load objects`` () =
     let c = p.LivesIn.Single
     Assert.AreEqual("Pisa", c.Name.Single)
     Assert.AreEqual(10000, c.Population.Single)
- 
+
 [<Test>]
 let ``Overrides equality and hash code`` () =
      let graph = parseTurtle sample2
@@ -80,7 +80,7 @@ let ``Overrides equality and hash code`` () =
      let c2 = G2.City.Get(graph).Single
      Assert.AreEqual(c1.GetHashCode(), c2.GetHashCode())
      Assert.AreEqual(c1, c2)
-   
+
 type G3 = GraphProvider<Schema = """
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -112,3 +112,16 @@ let ``Can add instance`` () =
     Assert.AreEqual(nodeUri, triple.Subject.Uri)
     Assert.AreEqual(typeUri, triple.Predicate.Uri)
     Assert.AreEqual(classUri, triple.Object.Uri)
+
+[<Test>]
+let ``Can add literal property`` () =
+    let graph = new Graph()
+    let nodeUri = Uri "http://example.org/p1"
+    let p = G3.Person.Add(graph, graph.CreateUriNode(nodeUri))
+    p.Age.Add(25)
+    Assert.AreEqual(25, p.Age.Single)
+    //Assert.AreEqual(nodeUri, p.Node.Uri)
+    //let triple = graph.Triples.Single
+    //Assert.AreEqual(nodeUri, triple.Subject.Uri)
+    //Assert.AreEqual(typeUri, triple.Predicate.Uri)
+    //Assert.AreEqual(classUri, triple.Object.Uri)
