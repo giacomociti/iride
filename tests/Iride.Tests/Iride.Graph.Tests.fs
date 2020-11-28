@@ -17,8 +17,6 @@ let parseTurtle turtle =
     TurtleParser().Load(graph, new IO.StringReader(turtle))
     graph
 
-
-
 [<Literal>]
 let sample1 = """
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -97,6 +95,46 @@ let ``Can use schema`` () =
     let p = G3.Person.Get(graph).Single
     Assert.AreEqual(Uri "http://example.org/p1", p.Node.Uri)
     Assert.AreEqual(10, p.Age.Single)
+
+type G4 = GraphProvider<Schema = """
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+    @prefix schema: <http://schema.org/> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    @prefix : <http://example.org/> .
+    
+    schema:Audiobook rdfs:subClassOf schema:Book .
+    schema:isbn schema:domainIncludes schema:Book .
+    schema:isbn schema:rangeIncludes xsd:string .
+    """>
+    
+[<Test>]
+let ``Can use schema org`` () =
+    let graph = parseTurtle """
+    @prefix : <http://example.org/> .
+    @prefix schema: <http://schema.org/> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+    :b1 a schema:Book; 
+        schema:isbn "abcd"^^xsd:string . # without type annotation won't work
+    """
+    let b = G4.Book.Get(graph).Single
+    Assert.AreEqual(Uri "http://example.org/b1", b.Node.Uri)
+    Assert.AreEqual("abcd", b.Isbn.Single)
+    
+[<Test>]
+let ``Can use subclass`` () =
+    let graph  = parseTurtle """
+    @prefix : <http://example.org/> .
+    @prefix schema: <http://schema.org/> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+    :b1 a schema:Audiobook; 
+        schema:isbn "abcd"^^xsd:string . # without type annotation won't work
+    """
+    let b = G4.Audiobook.Get(graph).Single
+    Assert.AreEqual(Uri "http://example.org/b1", b.Node.Uri)
+    Assert.AreEqual("abcd", b.Isbn.Single)
+
 
 [<Test>]
 let ``Can add instance`` () =
