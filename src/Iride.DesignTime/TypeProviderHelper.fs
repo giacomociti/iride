@@ -1,17 +1,11 @@
 ﻿module TypeProviderHelper
 
-    open Iride
-    open Iride.SparqlHelper
-    open VDS.RDF
     open Microsoft.FSharp.Quotations
     open ProviderImplementation.ProvidedTypes
-
-    let getSparqlText resolutionFolder (sparqlParameter: string) =
-        if sparqlParameter.EndsWith ".rq"
-        then
-            System.IO.Path.Combine(resolutionFolder, sparqlParameter)
-            |> System.IO.File.ReadAllText
-        else sparqlParameter
+    open Iride
+    open Common
+    open SparqlProviderlHelper
+    open VDS.RDF
 
     let getType = function
         | Node -> typeof<INode>
@@ -47,7 +41,7 @@
        | Patterns.Call(_, methodInfo, _) -> methodInfo
        | _ -> failwith "Unexpected expression" 
 
-    let getConverterMethod =  getConverterMethodExpression >> getMethodInfo
+    let getConverterMethod = getConverterMethodExpression >> getMethodInfo
 
     let getNodeExtractorMethod = getNodeExtractorMethodExpression >> getMethodInfo
 

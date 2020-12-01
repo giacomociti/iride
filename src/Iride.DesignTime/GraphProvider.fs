@@ -6,8 +6,9 @@ open Microsoft.FSharp.Quotations
 open FSharp.Core.CompilerServices
 open ProviderImplementation.ProvidedTypes
 open Iride
-open Iride.SparqlHelper
+open Common
 open TypeProviderHelper
+open GraphProviderHelper
 open VDS.RDF
 
 [<TypeProvider>]
@@ -22,17 +23,8 @@ type GraphProvider (config : TypeProviderConfig) as this =
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
     do assert (typeof<CommandRuntime>.Assembly.GetName().Name = executingAssembly.GetName().Name)
 
-    let literalType = function
-        | "http://www.w3.org/2001/XMLSchema#string" -> KnownDataType.Literal
-        | "http://www.w3.org/2001/XMLSchema#integer" -> KnownDataType.Integer
-        | "http://www.w3.org/2001/XMLSchema#date" -> KnownDataType.Date
-        | "http://www.w3.org/2001/XMLSchema#dateTime" -> KnownDataType.Time
-        | "http://www.w3.org/2001/XMLSchema#decimal" -> KnownDataType.Number
-        | "http://www.w3.org/2001/XMLSchema#boolean" -> KnownDataType.Boolean
-        | _ -> KnownDataType.Node
-
     let makeGenericMethod args expr =
-        let mi = TypeProviderHelper.getMethodInfo(expr).GetGenericMethodDefinition()
+        let mi = getMethodInfo(expr).GetGenericMethodDefinition()
         ProvidedTypeBuilder.MakeGenericMethod(mi, args)
 
     let getInstancesMethodInfo elementType =
@@ -79,20 +71,20 @@ type GraphProvider (config : TypeProviderConfig) as this =
         ctor
 
     let addField (providedType: ProvidedTypeDefinition) name =
-        let field = ProvidedField(RdfHelper.lowerInitial name, typeof<INode>) // TODO set as private readonly
+        let field = ProvidedField(lowerInitial name, typeof<INode>) // TODO set as private readonly
         providedType.AddMember field
         field
 
     let addProperty (providedType: ProvidedTypeDefinition) (field: ProvidedField) =
         let property =
-            let name = RdfHelper.upperInitial field.Name
+            let name = upperInitial field.Name
             ProvidedProperty(name, field.FieldType, getterCode = function
             | [this] -> Expr.FieldGet(this, field)
             | _ -> failwith "wrong property params")
         providedType.AddMember property
         property
 
-    let addGetMethod (providedType: ProvidedTypeDefinition) (classType: GraphHelper.ClassType) ctor =
+    let addGetMethod (providedType: ProvidedTypeDefinition) (classType: ClassType) ctor =
         ProvidedMethod("Get", 
             parameters = [ProvidedParameter("graph", typeof<IGraph>)], 
             returnType = ProvidedTypeBuilder.MakeGenericType(typedefof<seq<_>>, [providedType]), 
@@ -107,7 +99,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
             isStatic = true)
         |> providedType.AddMember
 
-    let addAddMethod (providedType: ProvidedTypeDefinition) (classType: GraphHelper.ClassType) ctor =
+    let addAddMethod (providedType: ProvidedTypeDefinition) (classType: ClassType) ctor =
         ProvidedMethod("Add", 
              parameters = [ProvidedParameter("graph", typeof<IGraph>); ProvidedParameter("node", typeof<INode>)], 
              returnType = providedType, 
@@ -122,8 +114,8 @@ type GraphProvider (config : TypeProviderConfig) as this =
              isStatic = true)
          |> providedType.AddMember
 
-    let createTypeForRdfClass (providedAssembly, (classType: GraphHelper.ClassType), propertyName) =
-        let typeName = RdfHelper.getName classType.Name
+    let createTypeForRdfClass (providedAssembly, (classType: ClassType), propertyName) =
+        let typeName = getName classType.Name
         let providedType = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
         let field = addField providedType propertyName
         let property = addProperty providedType field
@@ -138,11 +130,11 @@ type GraphProvider (config : TypeProviderConfig) as this =
         let providedAssembly = ProvidedAssembly()
         let providedType = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
         let nodePropertyName = "Node"
-        let f = RdfHelper.getGraph config.ResolutionFolder 
+        let f = getGraph config.ResolutionFolder 
         let types = 
             match sample, schema with
-            | sample, "" -> f sample |> GraphHelper.sample2classes 
-            | "", schema -> f schema |> GraphHelper.schema2classes
+            | sample, "" -> f sample |> sample2classes 
+            | "", schema -> f schema |> schema2classes
             | _ -> failwith "Need either Sample or Schema"
             |> Seq.map (fun x -> x.Name, (x, createTypeForRdfClass(providedAssembly, x, nodePropertyName)))
             |> dict
@@ -152,7 +144,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
             classDefinition.Properties
             |> Seq.map (fun p ->
                 match p.Value with
-                | GraphHelper.PropertyType.Class classUri -> 
+                | PropertyType.Class classUri -> 
                     let elementType = snd types.[classUri] :> Type
                     let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<PropertyValues<_>>, [elementType])
                     let predicateUri = Expr.Value p.Key.AbsoluteUri
@@ -162,15 +154,14 @@ type GraphProvider (config : TypeProviderConfig) as this =
                     let x = Var("x", elementType)
                     let targetNodeProperty = elementType.GetProperty(nodePropertyName)
                     let nodeExtractor = Expr.Lambda(x, Expr.PropertyGet(Expr.Var x, targetNodeProperty))
-                    ProvidedProperty(RdfHelper.getName p.Key, resultType, getterCode = function
+                    ProvidedProperty(getName p.Key, resultType, getterCode = function
                     | [this] -> 
                         let subject = Expr.PropertyGet(this, nodeProperty)
                         let ctor = resultType.GetConstructors() |> Seq.exactlyOne
                         Expr.NewObject(ctor, [subject; predicateUri; objectConverter; nodeExtractor])
                     | _ -> failwith "Expected a single parameter")
-                | GraphHelper.PropertyType.Literal literalTypeUri ->
-                    let knownDataType = literalType literalTypeUri.AbsoluteUri
-                    let elementType = TypeProviderHelper.getType knownDataType
+                | PropertyType.Literal knownDataType ->
+                    let elementType = getType knownDataType
                     let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<PropertyValues<_>>, [elementType])
                     let predicateUri = Expr.Value p.Key.AbsoluteUri
                     let converterMethodInfo = getConverterMethod knownDataType
@@ -179,7 +170,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
                     let objectConverter = Expr.Lambda(n, Expr.Call(converterMethodInfo, [Expr.Var n]))
                     let x = Var("x", elementType)
                     let nodeExtractor = Expr.Lambda(x, Expr.Call(nodeExtractorMethodInfo, [Expr.Var x]))
-                    ProvidedProperty(RdfHelper.getName p.Key, resultType, getterCode = function
+                    ProvidedProperty(getName p.Key, resultType, getterCode = function
                     | [this] -> 
                         let subject = Expr.PropertyGet(this, nodeProperty)
                         let ctor = resultType.GetConstructors() |> Seq.exactlyOne

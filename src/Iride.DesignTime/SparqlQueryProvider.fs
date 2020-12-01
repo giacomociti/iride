@@ -5,10 +5,11 @@ open Microsoft.FSharp.Quotations
 open FSharp.Core.CompilerServices
 open ProviderImplementation.ProvidedTypes
 open Iride
-open Iride.SparqlHelper
+open Common
+open SparqlProviderlHelper
+open TypeProviderHelper
 open VDS.RDF.Query
 open VDS.RDF.Parsing
-open TypeProviderHelper
 
 [<TypeProvider>]
 type SparqlQueryProvider (config : TypeProviderConfig) as this =
@@ -79,7 +80,7 @@ type SparqlQueryProvider (config : TypeProviderConfig) as this =
         
         if rdfSchema <> "" then
             schemaQuery
-            |> RdfHelper.getGraphProperties config.ResolutionFolder rdfSchema 
+            |> getGraphProperties config.ResolutionFolder rdfSchema 
             |> List.map (fun x -> x.Uri)
             |> checkSchema parsedQuery.NamespaceMap queryText
         

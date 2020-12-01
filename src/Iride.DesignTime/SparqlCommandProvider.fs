@@ -4,9 +4,10 @@ open System.Reflection
 open FSharp.Core.CompilerServices
 open ProviderImplementation.ProvidedTypes
 open Iride
-open Iride.SparqlHelper
-open VDS.RDF.Parsing
+open Common
+open SparqlProviderlHelper
 open TypeProviderHelper
+open VDS.RDF.Parsing
 
 [<TypeProvider>]
 type SparqlCommandProvider (config : TypeProviderConfig) as this =
@@ -34,7 +35,7 @@ type SparqlCommandProvider (config : TypeProviderConfig) as this =
 
         if rdfSchema <> "" then
             schemaQuery
-            |> RdfHelper.getGraphProperties config.ResolutionFolder rdfSchema 
+            |> getGraphProperties config.ResolutionFolder rdfSchema 
             |> List.map (fun x -> x.Uri)
             |> checkSchema parsedCommand.NamespaceMap commandText
 

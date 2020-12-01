@@ -1,20 +1,26 @@
 namespace Iride
 
+open System
 open System.IO
+open VDS.RDF
 open VDS.RDF.Query
 open VDS.RDF.Parsing
 open VDS.RDF.Parsing.Tokens
-open VDS.RDF
-open System
+open Common
 
-module SparqlHelper =
-
-    type KnownDataType = Node | Iri | Literal | Integer | Number | Date | Time | Boolean
+module SparqlProviderlHelper =
 
     type Variable =  { VariableName:  string; Type: KnownDataType }
     type Parameter = { ParameterName: string; Type: KnownDataType }
 
     type ResultVariables = { Variables: Variable list; OptionalVariables: Variable list }
+
+    let getSparqlText resolutionFolder (sparqlParameter: string) =
+        if sparqlParameter.EndsWith ".rq"
+        then
+            System.IO.Path.Combine(resolutionFolder, sparqlParameter)
+            |> System.IO.File.ReadAllText
+        else sparqlParameter
 
     let tokens commandText = seq {
         use reader = new StringReader (commandText)
@@ -49,13 +55,13 @@ module SparqlHelper =
 
     let knownDataType (name: string) =
         match (name.Split '_').[0] with
-        | "IRI" -> Iri
-        | "LIT" -> Literal
-        | "INT" -> Integer
-        | "NUM" -> Number
-        | "DATE" -> Date
-        | "TIME" -> Time
-        | "BOOL" -> Boolean
+        | "IRI" -> KnownDataType.Iri
+        | "LIT" -> KnownDataType.Literal
+        | "INT" -> KnownDataType.Integer
+        | "NUM" -> KnownDataType.Number
+        | "DATE" -> KnownDataType.Date
+        | "TIME" -> KnownDataType.Time
+        | "BOOL" -> KnownDataType.Boolean
         | _   -> Node
 
     let getBindings (query: SparqlQuery) parameterNames =

@@ -1,18 +1,25 @@
 ﻿namespace Iride
 
 open System
-open VDS.RDF
 open System.Collections.Generic
+open VDS.RDF
 open VDS.RDF.Query
+open Common
 
-module GraphHelper =
+module GraphProviderHelper =
 
-    type INode with
-        member this.Uri = (this :?> IUriNode).Uri
-
-    type PropertyType = Literal of Uri | Class of Uri
+    type PropertyType = Literal of KnownDataType | Class of Uri
 
     type ClassType = { Name: Uri; Properties: IDictionary<Uri, PropertyType> }
+
+    let knownDataType = function
+        | "http://www.w3.org/2001/XMLSchema#string" -> KnownDataType.Literal
+        | "http://www.w3.org/2001/XMLSchema#integer" -> KnownDataType.Integer
+        | "http://www.w3.org/2001/XMLSchema#date" -> KnownDataType.Date
+        | "http://www.w3.org/2001/XMLSchema#dateTime" -> KnownDataType.Time
+        | "http://www.w3.org/2001/XMLSchema#decimal" -> KnownDataType.Number
+        | "http://www.w3.org/2001/XMLSchema#boolean" -> KnownDataType.Boolean
+        | _ -> KnownDataType.Node
 
     let mergeDuplicates reduction keyValuePairs =
         keyValuePairs
@@ -21,7 +28,7 @@ module GraphHelper =
         |> dict
 
     let mergePropertyType _ _ = // don't bother with merging types
-        Literal (Uri "http://iride.dummy") // will fallback to INode property
+        Literal KnownDataType.Node // will fallback to INode property
     
 
     let parseClasses (schema: SparqlResultSet) =
@@ -41,7 +48,7 @@ module GraphHelper =
                         let propertyType =
                             if classes.ContainsKey propertyTypeUri 
                             then Class propertyTypeUri
-                            else Literal propertyTypeUri
+                            else Literal (knownDataType propertyTypeUri.AbsoluteUri)
                         propertyUri, propertyType)
                     |> mergeDuplicates mergePropertyType })
 

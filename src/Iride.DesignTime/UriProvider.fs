@@ -6,6 +6,7 @@ open Microsoft.FSharp.Quotations
 open FSharp.Core.CompilerServices
 open ProviderImplementation.ProvidedTypes
 open Iride
+open Common
 open VDS.RDF
 
 [<TypeProvider>]
@@ -25,7 +26,7 @@ type UriProvider (config : TypeProviderConfig) as this =
         let result = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
         
         let providedProperties = [
-            for property in RdfHelper.getGraphProperties config.ResolutionFolder schema schemaQuery do
+            for property in getGraphProperties config.ResolutionFolder schema schemaQuery do
                 let uri = property.Uri.AbsoluteUri
                 let providedProperty = 
                     ProvidedProperty(

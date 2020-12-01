@@ -219,5 +219,28 @@ let ``Property with mixed types`` () =
     Assert.Contains("2", cityIds)
     
 
+[<Literal>]
+let sample4 = """
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix : <http://example.org/> .
+
+:foo a :City ;
+    :id :v1 ;
+    :id :v2 .
+"""
+
+type G6 = GraphProvider<sample4>
+[<Test>]
+let ``Property with mixed classes`` () =
+    let graph = parseTurtle sample4
+    let city = G6.City.Get(graph).Single
+    let cityIds = 
+        city.Id
+        |> Seq.cast<IUriNode> 
+        |> Seq.map (fun x -> x.Uri) 
+        |> Seq.toArray
+    Assert.AreEqual(2, Seq.length city.Id)
+    Assert.Contains(Uri "http://example.org/v1", cityIds)
+    Assert.Contains(Uri "http://example.org/v2", cityIds)
    
 

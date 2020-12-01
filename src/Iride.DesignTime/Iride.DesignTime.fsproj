@@ -11,9 +11,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Iride\Iride.fs" />
-    <Compile Include="GraphHelper.fs" />
-    <Compile Include="RdfHelper.fs" />
-    <Compile Include="SparqlHelper.fs" />
+    <Compile Include="Common.fs" />
+    <Compile Include="SparqlProviderlHelper.fs" />
+    <Compile Include="GraphProviderHelper.fs" />
     <Compile Include="..\..\paket-files\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fsi">
       <Paket>True</Paket>
       <Link>paket-files/ProvidedTypes.fsi</Link>
