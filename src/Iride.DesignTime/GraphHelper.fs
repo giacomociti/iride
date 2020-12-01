@@ -14,6 +14,16 @@ module GraphHelper =
 
     type ClassType = { Name: Uri; Properties: IDictionary<Uri, PropertyType> }
 
+    let mergeDuplicates reduction keyValuePairs =
+        keyValuePairs
+        |> Seq.groupBy fst
+        |> Seq.map (fun (key, vals) -> key, vals |> Seq.map snd |> Seq.reduce reduction)
+        |> dict
+
+    let mergePropertyType _ _ = // don't bother with merging types
+        Literal (Uri "http://iride.dummy") // will fallback to INode property
+    
+
     let parseClasses (schema: SparqlResultSet) =
         let classes =
             schema.Results
@@ -26,14 +36,14 @@ module GraphHelper =
                 Properties = 
                     properties
                     |> Seq.map (fun x ->
-                        let pred = x.["p"].Uri
-                        let obj = x.["t2"].Uri
-                        let value =
-                            if classes.ContainsKey obj 
-                            then Class obj
-                            else Literal obj
-                        pred, value)
-                    |> dict })
+                        let propertyUri = x.["p"].Uri
+                        let propertyTypeUri = x.["t2"].Uri
+                        let propertyType =
+                            if classes.ContainsKey propertyTypeUri 
+                            then Class propertyTypeUri
+                            else Literal propertyTypeUri
+                        propertyUri, propertyType)
+                    |> mergeDuplicates mergePropertyType })
 
     let sampleQuery = """
         SELECT ?t1 ?p ?t2

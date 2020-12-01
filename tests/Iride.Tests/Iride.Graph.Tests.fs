@@ -1,3 +1,12 @@
+// TODO
+//   Solution or workaround for https://github.com/fsprojects/FSharp.TypeProviders.SDK/issues/352
+//   Test blank nodes
+//   When working from a schema:
+//   - create also the type property
+//   - support also rdfs:Literal
+//   - consider making range optional
+
+
 module IrideGraphTests
 
 open System
@@ -182,3 +191,33 @@ let ``Can add property`` () =
     Assert.AreEqual(2,  Seq.length p.LivesIn)
     Assert.Contains(c1, Seq.toArray p.LivesIn)
     Assert.Contains(c2, Seq.toArray p.LivesIn)
+
+
+[<Literal>]
+let sample3 = """
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix : <http://example.org/> .
+
+:foo a :City ;
+    :id "1" ;
+    :id 2 .
+"""
+
+type G5 = GraphProvider<sample3>
+
+[<Test>]
+let ``Property with mixed types`` () =
+    let graph = parseTurtle sample3
+    let city = G5.City.Get(graph).Single
+    let cityIds = 
+        city.Id
+        |> Seq.cast<ILiteralNode> 
+        |> Seq.map (fun x -> x.Value) 
+        |> Seq.toArray
+    Assert.AreEqual(2, Seq.length city.Id)
+    Assert.Contains("1", cityIds)
+    Assert.Contains("2", cityIds)
+    
+
+   
+
