@@ -47,8 +47,8 @@ type G1 = GraphProvider<sample1>
 let ``Can load literals`` () =
     let graph = parseTurtle sample1
     let p = G1.Person.Get(graph).Single
-    Assert.AreEqual (Uri "http://example.org/Foo", p.Node.Uri)
-    Assert.AreEqual (Uri "http://example.org/Person", p.Type.Single.Uri)
+    Assert.AreEqual(Uri "http://example.org/Foo", p.Node.Uri)
+    Assert.AreEqual(Uri "http://example.org/Person", p.Type.Single.Uri)
     Assert.AreEqual(100, p.Age.Single)
     Assert.AreEqual(3.4, p.Num.Single)
     Assert.True(p.Nice.Single)
@@ -76,6 +76,18 @@ let ``Can load objects`` () =
     let c = G2.Person.Get(graph).Single.LivesIn.Single
     Assert.AreEqual(Uri "http://example.org/Bar", c.Node.Uri)
     Assert.AreEqual(Uri "http://example.org/City", c.Type.Single.Uri)
+    Assert.AreEqual(10000, c.Population.Single)
+
+[<Test>]
+let ``Can load blank nodes`` () =
+    let graph = parseTurtle """
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+    @prefix : <http://example.org/> .
+    
+    _:Foo a :Person ;
+        :livesIn [ a :City ; :population 10000 ] .
+    """
+    let c = G2.Person.Get(graph).Single.LivesIn.Single
     Assert.AreEqual(10000, c.Population.Single)
 
 [<Test>]
