@@ -16,7 +16,7 @@ summary
     F# type providers for RDF and SPARQL
 description
     F# type providers for RDF and SPARQL.
-	GraphProvider generates types from a schema or sample RDF graph.
+    GraphProvider generates types from a schema or sample RDF graph.
     UriProvider generates Uri properties for IRIs in RDF vocabularies.
     SparqlCommandProvider and SparqlQueryProvider provide some type safety for SPARQL.
 files
