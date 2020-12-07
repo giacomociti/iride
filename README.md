@@ -1,9 +1,56 @@
 [![NuGet Badge](https://buildstats.info/nuget/Iride)](https://www.nuget.org/packages/Iride)
 [![Build status](https://ci.appveyor.com/api/projects/status/v69lb0ykwmm0iuf6/branch/master?svg=true)](https://ci.appveyor.com/project/giacomociti/iride/branch/master)
 
-This library contains F# generative type providers built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
+This library contains F# generative type providers for RDF and SPARQL. It is built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
+
+## GraphProvider
+
+_GraphProvider_ generates types from a schema or from a sample.
+
+Given the following [Turtle](https://www.w3.org/TR/turtle/) file _alice.ttl_:
+
+```ttl
+@prefix : <http://example.org/> .
+
+:alice a :Person ;
+    :age :42 .
+```
+
+The type provider infers a type `Person` with a property `Age` and a `Get` factory method returning the instances in a given graph.
+
+```fs
+open Iride
+open VDS.RDF
+
+type G = GraphProvider<"alice.ttl">
+
+let graph = new Graph()
+Parsing.FileLoader.Load(graph, "alice.ttl")
+
+let p =  G.Person.Get(graph) |> Seq.exactlyOne
+p.Age
+|> Seq.exactlyOne
+|> printfn "%i"
+
+```
+
+All properties are generated as sequences since RDF allows multiple values.
+
+The same model is obtained using a schema (either [RDFS](https://www.w3.org/TR/rdf-schema/) or [schema.org](schema.org)):
+
+```fs
+type G = GraphProvider<Schema = """
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    @prefix : <http://example.org/> .
+
+    :age rdfs:domain :Person ;
+         rdfs:range xsd:integer .
+    """>
+```
 
 ## SparqlQueryProvider
+
 _SparqlQueryProvider_ checks SPARQL queries at design time, in the same vein as [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
 For example it detects syntax errors in SPARQL text:
 
@@ -12,7 +59,7 @@ For example it detects syntax errors in SPARQL text:
 It also provides typed input parameters and (for SELECT queries) typed `Result` objects.
 In the following example the type provider generates a type `Q` with a static method `GetText` and inner type `Q.Result`.
 The former allows to set input parameters (replacing _$INT_ with _42_ in the example).
-The latter is a typed wrapper of `SparqlResult` objects, with properties corresponding to 
+The latter is a typed wrapper of `SparqlResult` objects, with properties corresponding to
 the output variables (`s` and `IRI_p` in the example) of the query.
 
 ```fs
@@ -20,13 +67,13 @@ open Iride
 
 type Q = SparqlQueryProvider<"SELECT * WHERE { ?s ?IRI_p $INT }">
 
-let exec: string -> VDS.RDF.Query.SparqlResultSet = 
+let exec: string -> VDS.RDF.Query.SparqlResultSet =
     failwith "Use your favourite SPARQL client"
 
 let query = Q.GetText(INT=42)
 for r in exec(query) do
     let result = Q.Result(r)
-    let subject: VDS.RDF.INode = result.s 
+    let subject: VDS.RDF.INode = result.s
     let predicate: System.Uri = result.IRI_p
     // ....
 ```
@@ -41,6 +88,7 @@ may return unparseable values due to the schemaless nature of RDF.
 Supported data types are IRI, LIT, INT, NUM, DATE, TIME, BOOL.
 
 ## SparqlCommandProvider
+
 _SparqlCommandProvider_ behaves like _SparqlQueryProvider_ except that it covers update commands.
 
 ```fs
@@ -54,17 +102,18 @@ Cmd.GetText(
 |> printfn "%s"
 // INSERT DATA {<http://example.org/p1> <http://example.org/age> 25 }
 ```
+
 ## UriProvider
 
 _UriProvider_ creates `System.Uri` properties from IRIs in RDF vocabularies.
 
 ```fs
-type Book = UriProvider<"https://schema.org/Book.ttl">
+type Book = UriProvider<"book.ttl">
 
 let a: System.Uri = Book.author
 ```
 
-The vocabulary can be either turtle text, a local file or a web resource like in the example above.
+The vocabulary can be either turtle text, a local file or a web resource.
 The list of IRIs for which a property is generated is obtained with the following SPARQL query:
 
 ```sparql
@@ -79,6 +128,7 @@ SELECT ?uri ?label ?comment WHERE {
 You can provide your own SPARQL query to customize the set of properties.
 
 ## Vocabulary checks
+
 To detect typos in property and class names, it is useful to restrict the accepted vocabulary in queries and commands:
 
 ![](https://github.com/giacomociti/iride/blob/master/tests/RdfSchema.PNG)

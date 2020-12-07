@@ -1,8 +1,6 @@
 // TODO
-//   Solution or workaround for https://github.com/fsprojects/FSharp.TypeProviders.SDK/issues/352
-//   Test blank nodes
 //   When working from a schema:
-//   - create also the type property
+//   - consider creating also the 'type' property
 //   - support also rdfs:Literal
 //   - consider making range optional
 
@@ -83,7 +81,7 @@ let ``Can load blank nodes`` () =
     let graph = parseTurtle """
     @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
     @prefix : <http://example.org/> .
-    
+
     _:Foo a :Person ;
         :livesIn [ a :City ; :population 10000 ] .
     """
@@ -122,12 +120,12 @@ type G4 = GraphProvider<Schema = """
     @prefix schema: <http://schema.org/> .
     @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
     @prefix : <http://example.org/> .
-    
+
     schema:Audiobook rdfs:subClassOf schema:Book .
     schema:isbn schema:domainIncludes schema:Book .
     schema:isbn schema:rangeIncludes xsd:string .
     """>
-    
+
 [<Test>]
 let ``Can use schema org`` () =
     let graph = parseTurtle """
@@ -135,13 +133,13 @@ let ``Can use schema org`` () =
     @prefix schema: <http://schema.org/> .
     @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-    :b1 a schema:Book; 
+    :b1 a schema:Book;
         schema:isbn "abcd"^^xsd:string . # without type annotation won't work
     """
     let b = G4.Book.Get(graph).Single
     Assert.AreEqual(Uri "http://example.org/b1", b.Node.Uri)
     Assert.AreEqual("abcd", b.Isbn.Single)
-    
+
 [<Test>]
 let ``Can use subclass`` () =
     let graph  = parseTurtle """
@@ -149,7 +147,7 @@ let ``Can use subclass`` () =
     @prefix schema: <http://schema.org/> .
     @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-    :b1 a schema:Audiobook; 
+    :b1 a schema:Audiobook;
         schema:isbn "abcd"^^xsd:string . # without type annotation won't work
     """
     let b = G4.Audiobook.Get(graph).Single
@@ -221,15 +219,15 @@ type G5 = GraphProvider<sample3>
 let ``Property with mixed types`` () =
     let graph = parseTurtle sample3
     let city = G5.City.Get(graph).Single
-    let cityIds = 
+    let cityIds =
         city.Id
-        |> Seq.cast<ILiteralNode> 
-        |> Seq.map (fun x -> x.Value) 
+        |> Seq.cast<ILiteralNode>
+        |> Seq.map (fun x -> x.Value)
         |> Seq.toArray
     Assert.AreEqual(2, Seq.length city.Id)
     Assert.Contains("1", cityIds)
     Assert.Contains("2", cityIds)
-    
+
 
 [<Literal>]
 let sample4 = """
@@ -246,13 +244,13 @@ type G6 = GraphProvider<sample4>
 let ``Property with mixed classes`` () =
     let graph = parseTurtle sample4
     let city = G6.City.Get(graph).Single
-    let cityIds = 
+    let cityIds =
         city.Id
-        |> Seq.cast<IUriNode> 
-        |> Seq.map (fun x -> x.Uri) 
+        |> Seq.cast<IUriNode>
+        |> Seq.map (fun x -> x.Uri)
         |> Seq.toArray
     Assert.AreEqual(2, Seq.length city.Id)
     Assert.Contains(Uri "http://example.org/v1", cityIds)
     Assert.Contains(Uri "http://example.org/v2", cityIds)
-   
+
 

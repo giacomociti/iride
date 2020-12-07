@@ -7,15 +7,16 @@ owners
 projectUrl
     http://github.com/giacomociti/iride
 licenseUrl
-    http://github.com/giacomociti/iride/blob/master/license.txt    
+    http://github.com/giacomociti/iride/blob/master/license.txt
 requireLicenseAcceptance
     false
 tags
     F# fsharp typeproviders RDF SPARQL
 summary
-    F# type providers for SPARQL and RDF IRIs
+    F# type providers for RDF and SPARQL
 description
-    F# type providers for SPARQL and RDF IRIs.
+    F# type providers for RDF and SPARQL.
+	GraphProvider generates types from a schema or sample RDF graph.
     UriProvider generates Uri properties for IRIs in RDF vocabularies.
     SparqlCommandProvider and SparqlQueryProvider provide some type safety for SPARQL.
 files
@@ -26,4 +27,4 @@ references
     Iride.dll
 dependencies
   FSharp.Core >= LOCKEDVERSION
-  dotNetRDF >= 2.4.0
+  dotNetRDF >= LOCKEDVERSION
