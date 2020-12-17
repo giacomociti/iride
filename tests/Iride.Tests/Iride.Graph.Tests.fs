@@ -12,6 +12,7 @@ open NUnit.Framework
 open Iride
 open VDS.RDF
 open VDS.RDF.Parsing
+open VDS.RDF.Storage
 
 type System.Collections.Generic.IEnumerable<'a> with
     member this.Single = Seq.exactlyOne this
@@ -54,6 +55,21 @@ let ``Can load literals`` () =
     Assert.AreEqual(DateTimeOffset(DateTime(2016,12,1, 15,31,10), TimeSpan.FromHours(-5.)), p.Time.Single)
     Assert.AreEqual("bob", p.Name.Single)
     Assert.AreEqual(Uri "http://example.org/bar", p.Other.Single.Uri)
+
+[<Test>]
+let ``Can load query results`` () =
+    let m = new InMemoryManager()
+    m.Update """
+    prefix : <http://example.org/>
+    INSERT DATA {
+        :p a :Person ;
+            :age 100 .
+    }
+    """
+    let graph = m.Query "CONSTRUCT WHERE { ?s ?p ?o }" :?> IGraph
+    let p = G1.Person.Get(graph).Single
+
+    Assert.AreEqual(100, p.Age.Single)
 
 [<Literal>]
 let sample2 = """
