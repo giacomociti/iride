@@ -3,6 +3,9 @@ namespace Iride
 open VDS.RDF
 open VDS.RDF.Query
 open System.Xml
+open VDS.RDF.Parsing
+
+type Node = { Node: INode; Graph: IGraph }
 
 type CommandRuntime =
     static member NodeFactory = NodeFactory()
@@ -34,22 +37,23 @@ type CommandRuntime =
 
 
     static member GetInstances(graph: IGraph, classUri: string, subjectConverter) =
-        let typeNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+        
+        let typeNode = graph.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
         let classNode = graph.CreateUriNode(UriFactory.Create classUri)
         graph.GetTriplesWithPredicateObject(typeNode, classNode)
-        |> Seq.map (fun t -> subjectConverter(t.Subject))
+        |> Seq.map (fun t -> subjectConverter { Node = t.Subject; Graph = graph })
 
     static member AddInstance(graph: IGraph, subject: INode, classUri: string, subjectConverter) =
-        let typeNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+        let typeNode = graph.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
         let classNode = graph.CreateUriNode(UriFactory.Create classUri)
-        graph.Assert(subject, typeNode, classNode)
-        subjectConverter(subject)
+        subject.Graph.Assert(subject, typeNode, classNode)
+        subjectConverter { Node = subject; Graph = graph }
 
-type PropertyValues<'a>(subject: INode, predicateUri: string, objectConverter, nodeExtracor) =
+type PropertyValues<'a>(subject: Node, predicateUri: string, objectFactory, nodeFactory) =
     let predicate = subject.Graph.CreateUriNode(UriFactory.Create predicateUri)
     let getValues() =
-        subject.Graph.GetTriplesWithSubjectPredicate(subject, predicate)
-        |> Seq.map (fun x -> objectConverter(x.Object))
+        subject.Graph.GetTriplesWithSubjectPredicate(subject.Node, predicate)
+        |> Seq.map (fun x -> objectFactory { Node = x.Object; Graph = subject.Graph } )
 
     interface seq<'a> with
         member _.GetEnumerator() = 
@@ -58,7 +62,7 @@ type PropertyValues<'a>(subject: INode, predicateUri: string, objectConverter, n
             getValues().GetEnumerator() :> System.Collections.IEnumerator
 
     member _.Add(item: 'a) =
-        subject.Graph.Assert(subject, predicate, nodeExtracor item)
+        subject.Graph.Assert(subject.Node, predicate, nodeFactory item)
 
 module SchemaQuery =
 

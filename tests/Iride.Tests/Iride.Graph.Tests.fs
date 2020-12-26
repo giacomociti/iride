@@ -20,6 +20,9 @@ type System.Collections.Generic.IEnumerable<'a> with
 type INode with
     member this.Uri = (this :?> IUriNode).Uri
 
+type Node with
+    member this.Uri = this.Node.Uri
+
 let parseTurtle turtle =
     let graph = new Graph()
     TurtleParser().Load(graph, new IO.StringReader(turtle))
@@ -170,20 +173,19 @@ let ``Can use subclass`` () =
     Assert.AreEqual(Uri "http://example.org/b1", b.Node.Uri)
     Assert.AreEqual("abcd", b.Isbn.Single)
 
-
 [<Test>]
 let ``Can add instance`` () =
     let graph = new Graph()
     Assert.IsEmpty(G3.Person.Get(graph))
 
     let nodeUri = Uri "http://example.org/p1"
-
     let p = G3.Person.Add(graph, graph.CreateUriNode(nodeUri))
+
     Assert.AreEqual(p, G3.Person.Get(graph).Single)
     Assert.AreEqual(nodeUri, p.Node.Uri)
     let triple = graph.Triples.Single
     Assert.AreEqual(nodeUri, triple.Subject.Uri)
-    Assert.AreEqual(Uri "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", triple.Predicate.Uri)
+    Assert.AreEqual(Uri RdfSpecsHelper.RdfType, triple.Predicate.Uri)
     Assert.AreEqual(Uri "http://example.org/Person", triple.Object.Uri)
 
 [<Test>]

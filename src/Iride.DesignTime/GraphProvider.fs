@@ -41,7 +41,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
             let getHashCode = ProvidedMethod(m.Name, [], m.ReturnType, invokeCode = function
                 | [this] -> 
                     let node = Expr.PropertyGet(this, property)
-                    <@@ (%%node: INode).GetHashCode() @@>
+                    <@@ (%%node: Node).GetHashCode() @@>
                 | _ -> failwith "unexpected args for GetHashCode")
             getHashCode.AddMethodAttrs MethodAttributes.Virtual
             providedType.AddMember getHashCode
@@ -54,7 +54,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
                     let other = Expr.Coerce(obj, providedType)
                     let otherNode = Expr.PropertyGet(other, property)
                     let thisNode = Expr.PropertyGet(this, property)
-                    <@@ (%%thisNode:INode).Equals((%%otherNode:INode)) @@>
+                    <@@ (%%thisNode:Node).Equals((%%otherNode:Node)) @@>
                 | _ -> failwith "unexpected args for Equals")
             equals.AddMethodAttrs MethodAttributes.Virtual
             providedType.AddMember equals
@@ -71,7 +71,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
         ctor
 
     let addField (providedType: ProvidedTypeDefinition) name =
-        let field = ProvidedField(lowerInitial name, typeof<INode>) // TODO set as private readonly
+        let field = ProvidedField(lowerInitial name, typeof<Node>) // TODO set as private readonly
         providedType.AddMember field
         field
 
@@ -90,7 +90,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
             returnType = ProvidedTypeBuilder.MakeGenericType(typedefof<seq<_>>, [providedType]), 
             invokeCode = (function
                 | [graph] -> 
-                    let x = Var("x", typeof<INode>)
+                    let x = Var("x", typeof<Node>)
                     let converter = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
                     let getInstancesMethod = getInstancesMethodInfo providedType
                     let classUri = Expr.Value classType.Name.AbsoluteUri
@@ -105,7 +105,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
              returnType = providedType, 
              invokeCode = (function
                  | [graph; node] -> 
-                     let x = Var("x", typeof<INode>)
+                     let x = Var("x", typeof<Node>)
                      let converter = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
                      let addInstanceMethod = addInstanceMethodInfo providedType
                      let classUri = Expr.Value classType.Name.AbsoluteUri
@@ -139,6 +139,29 @@ type GraphProvider (config : TypeProviderConfig) as this =
             |> Seq.map (fun x -> x.Name, (x, createTypeForRdfClass(providedAssembly, x, nodePropertyName)))
             |> dict
 
+        let getObjectFactory (providedType: Type) =
+            let n = Var("n", typeof<Node>)
+            let ctor = providedType.GetConstructor [| typeof<Node> |]
+            Expr.Lambda(n, Expr.NewObject(ctor, [Expr.Var n]))
+
+        let getLiteralFactory knownDataType =
+            let converterMethodInfo = getConverterMethod knownDataType
+            let n = Var("n", typeof<Node>)
+            let e = Expr.Var n
+            let inode = <@@ (%%e:Node).Node @@>
+            Expr.Lambda(n, Expr.Call(converterMethodInfo, [inode]))
+
+        let nodeAccessor (providedType: Type) =
+            let x = Var("x", providedType)
+            let targetNodeProperty = providedType.GetProperty(nodePropertyName)
+            let node = Expr.PropertyGet(Expr.Var x, targetNodeProperty)
+            Expr.Lambda(x, <@@ (%%node:Node).Node @@>)
+
+        let getNodeFactory elementType knownDataType =
+            let nodeExtractorMethodInfo = getNodeExtractorMethod knownDataType
+            let x = Var("x", elementType)
+            Expr.Lambda(x, Expr.Call(nodeExtractorMethodInfo, [Expr.Var x]))
+
         for (classDefinition, typeDefinition) in types.Values do
             let nodeProperty = typeDefinition.GetProperty(nodePropertyName)
             classDefinition.Properties
@@ -148,33 +171,25 @@ type GraphProvider (config : TypeProviderConfig) as this =
                     let elementType = snd types.[classUri] :> Type
                     let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<PropertyValues<_>>, [elementType])
                     let predicateUri = Expr.Value p.Key.AbsoluteUri
-                    let n = Var("n", typeof<INode>)
-                    let ctor = elementType.GetConstructor([| typeof<INode> |])
-                    let objectConverter = Expr.Lambda(n, Expr.NewObject(ctor, [Expr.Var n]))
-                    let x = Var("x", elementType)
-                    let targetNodeProperty = elementType.GetProperty(nodePropertyName)
-                    let nodeExtractor = Expr.Lambda(x, Expr.PropertyGet(Expr.Var x, targetNodeProperty))
+                    let objectFactory = getObjectFactory elementType
+                    let nodeFactory = nodeAccessor elementType
                     ProvidedProperty(getName p.Key, resultType, getterCode = function
                     | [this] -> 
                         let subject = Expr.PropertyGet(this, nodeProperty)
                         let ctor = resultType.GetConstructors() |> Seq.exactlyOne
-                        Expr.NewObject(ctor, [subject; predicateUri; objectConverter; nodeExtractor])
+                        Expr.NewObject(ctor, [subject; predicateUri; objectFactory; nodeFactory])
                     | _ -> failwith "Expected a single parameter")
                 | PropertyType.Literal knownDataType ->
                     let elementType = getType knownDataType
                     let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<PropertyValues<_>>, [elementType])
                     let predicateUri = Expr.Value p.Key.AbsoluteUri
-                    let converterMethodInfo = getConverterMethod knownDataType
-                    let nodeExtractorMethodInfo = getNodeExtractorMethod knownDataType
-                    let n = Var("n", typeof<INode>)
-                    let objectConverter = Expr.Lambda(n, Expr.Call(converterMethodInfo, [Expr.Var n]))
-                    let x = Var("x", elementType)
-                    let nodeExtractor = Expr.Lambda(x, Expr.Call(nodeExtractorMethodInfo, [Expr.Var x]))
+                    let objectFactory = getLiteralFactory knownDataType
+                    let nodeFactory = getNodeFactory elementType knownDataType
                     ProvidedProperty(getName p.Key, resultType, getterCode = function
                     | [this] -> 
                         let subject = Expr.PropertyGet(this, nodeProperty)
                         let ctor = resultType.GetConstructors() |> Seq.exactlyOne
-                        Expr.NewObject(ctor, [subject; predicateUri; objectConverter; nodeExtractor])
+                        Expr.NewObject(ctor, [subject; predicateUri; objectFactory; nodeFactory])
                     | _ -> failwith "Expected a single parameter"))
             |> Seq.toList
             |> typeDefinition.AddMembers
