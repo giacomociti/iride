@@ -40,8 +40,8 @@ type GraphProvider (config : TypeProviderConfig) as this =
         | Patterns.Call(_, m, _) -> 
             let getHashCode = ProvidedMethod(m.Name, [], m.ReturnType, invokeCode = function
                 | [this] -> 
-                    let node = Expr.PropertyGet(this, property)
-                    <@@ (%%node: Node).GetHashCode() @@>
+                    let resource = Expr.PropertyGet(this, property)
+                    <@@ (%%resource: Resource).GetHashCode() @@>
                 | _ -> failwith "unexpected args for GetHashCode")
             getHashCode.AddMethodAttrs MethodAttributes.Virtual
             providedType.AddMember getHashCode
@@ -52,9 +52,9 @@ type GraphProvider (config : TypeProviderConfig) as this =
             let equals = ProvidedMethod(m.Name, [ProvidedParameter("obj", typeof<obj>)], typeof<bool>, invokeCode = function
                 | [this; obj] -> 
                     let other = Expr.Coerce(obj, providedType)
-                    let otherNode = Expr.PropertyGet(other, property)
-                    let thisNode = Expr.PropertyGet(this, property)
-                    <@@ (%%thisNode:Node).Equals((%%otherNode:Node)) @@>
+                    let otherResource = Expr.PropertyGet(other, property)
+                    let thisResource = Expr.PropertyGet(this, property)
+                    <@@ (%%thisResource:Resource).Equals((%%otherResource:Resource)) @@>
                 | _ -> failwith "unexpected args for Equals")
             equals.AddMethodAttrs MethodAttributes.Virtual
             providedType.AddMember equals
@@ -71,7 +71,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
         ctor
 
     let addField (providedType: ProvidedTypeDefinition) name =
-        let field = ProvidedField(lowerInitial name, typeof<Node>) // TODO set as private readonly
+        let field = ProvidedField(lowerInitial name, typeof<Resource>) // TODO set as private readonly
         providedType.AddMember field
         field
 
@@ -90,7 +90,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
             returnType = ProvidedTypeBuilder.MakeGenericType(typedefof<seq<_>>, [providedType]), 
             invokeCode = (function
                 | [graph] -> 
-                    let x = Var("x", typeof<Node>)
+                    let x = Var("x", typeof<Resource>)
                     let converter = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
                     let getInstancesMethod = getInstancesMethodInfo providedType
                     let classUri = Expr.Value classType.Name.AbsoluteUri
@@ -105,7 +105,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
              returnType = providedType, 
              invokeCode = (function
                  | [graph; node] -> 
-                     let x = Var("x", typeof<Node>)
+                     let x = Var("x", typeof<Resource>)
                      let converter = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
                      let addInstanceMethod = addInstanceMethodInfo providedType
                      let classUri = Expr.Value classType.Name.AbsoluteUri
@@ -129,33 +129,33 @@ type GraphProvider (config : TypeProviderConfig) as this =
         
         let providedAssembly = ProvidedAssembly()
         let providedType = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
-        let nodePropertyName = "Node"
+        let resourcePropertyName = "Resource"
         let f = getGraph config.ResolutionFolder 
         let types = 
             match sample, schema with
             | sample, "" -> f sample |> sample2classes 
             | "", schema -> f schema |> schema2classes
             | _ -> failwith "Need either Sample or Schema"
-            |> Seq.map (fun x -> x.Name, (x, createTypeForRdfClass(providedAssembly, x, nodePropertyName)))
+            |> Seq.map (fun x -> x.Name, (x, createTypeForRdfClass(providedAssembly, x, resourcePropertyName)))
             |> dict
 
         let getObjectFactory (providedType: Type) =
-            let n = Var("n", typeof<Node>)
-            let ctor = providedType.GetConstructor [| typeof<Node> |]
-            Expr.Lambda(n, Expr.NewObject(ctor, [Expr.Var n]))
+            let r = Var("r", typeof<Resource>)
+            let ctor = providedType.GetConstructor [| typeof<Resource> |]
+            Expr.Lambda(r, Expr.NewObject(ctor, [Expr.Var r]))
 
         let getLiteralFactory knownDataType =
             let converterMethodInfo = getConverterMethod knownDataType
-            let n = Var("n", typeof<Node>)
-            let e = Expr.Var n
-            let inode = <@@ (%%e:Node).Node @@>
-            Expr.Lambda(n, Expr.Call(converterMethodInfo, [inode]))
+            let r = Var("r", typeof<Resource>)
+            let e = Expr.Var r
+            let n = <@@ (%%e:Resource).Node @@>
+            Expr.Lambda(r, Expr.Call(converterMethodInfo, [n]))
 
         let nodeAccessor (providedType: Type) =
             let x = Var("x", providedType)
-            let targetNodeProperty = providedType.GetProperty(nodePropertyName)
-            let node = Expr.PropertyGet(Expr.Var x, targetNodeProperty)
-            Expr.Lambda(x, <@@ (%%node:Node).Node @@>)
+            let propertyInfo = providedType.GetProperty(resourcePropertyName)
+            let propertyValue = Expr.PropertyGet(Expr.Var x, propertyInfo)
+            Expr.Lambda(x, <@@ (%%propertyValue:Resource).Node @@>)
 
         let getNodeFactory elementType knownDataType =
             let nodeExtractorMethodInfo = getNodeExtractorMethod knownDataType
@@ -163,7 +163,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
             Expr.Lambda(x, Expr.Call(nodeExtractorMethodInfo, [Expr.Var x]))
 
         for (classDefinition, typeDefinition) in types.Values do
-            let nodeProperty = typeDefinition.GetProperty(nodePropertyName)
+            let resourceProperty = typeDefinition.GetProperty(resourcePropertyName)
             classDefinition.Properties
             |> Seq.map (fun p ->
                 match p.Value with
@@ -175,7 +175,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
                     let nodeFactory = nodeAccessor elementType
                     ProvidedProperty(getName p.Key, resultType, getterCode = function
                     | [this] -> 
-                        let subject = Expr.PropertyGet(this, nodeProperty)
+                        let subject = Expr.PropertyGet(this, resourceProperty)
                         let ctor = resultType.GetConstructors() |> Seq.exactlyOne
                         Expr.NewObject(ctor, [subject; predicateUri; objectFactory; nodeFactory])
                     | _ -> failwith "Expected a single parameter")
@@ -187,7 +187,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
                     let nodeFactory = getNodeFactory elementType knownDataType
                     ProvidedProperty(getName p.Key, resultType, getterCode = function
                     | [this] -> 
-                        let subject = Expr.PropertyGet(this, nodeProperty)
+                        let subject = Expr.PropertyGet(this, resourceProperty)
                         let ctor = resultType.GetConstructors() |> Seq.exactlyOne
                         Expr.NewObject(ctor, [subject; predicateUri; objectFactory; nodeFactory])
                     | _ -> failwith "Expected a single parameter"))

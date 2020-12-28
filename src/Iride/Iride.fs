@@ -5,7 +5,7 @@ open VDS.RDF.Query
 open System.Xml
 open VDS.RDF.Parsing
 
-type Node = { Node: INode; Graph: IGraph }
+type Resource = { Node: INode; Graph: IGraph }
 
 type CommandRuntime =
     static member NodeFactory = NodeFactory()
@@ -36,20 +36,19 @@ type CommandRuntime =
 
 
 
-    static member GetInstances(graph: IGraph, classUri: string, subjectConverter) =
-        
+    static member GetInstances(graph: IGraph, classUri: string, factory) =
         let typeNode = graph.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
         let classNode = graph.CreateUriNode(UriFactory.Create classUri)
         graph.GetTriplesWithPredicateObject(typeNode, classNode)
-        |> Seq.map (fun t -> subjectConverter { Node = t.Subject; Graph = graph })
+        |> Seq.map (fun t -> factory { Node = t.Subject; Graph = graph })
 
-    static member AddInstance(graph: IGraph, subject: INode, classUri: string, subjectConverter) =
+    static member AddInstance(graph: IGraph, subject: INode, classUri: string, factory) =
         let typeNode = graph.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
         let classNode = graph.CreateUriNode(UriFactory.Create classUri)
-        subject.Graph.Assert(subject, typeNode, classNode)
-        subjectConverter { Node = subject; Graph = graph }
+        graph.Assert(subject, typeNode, classNode)
+        factory { Node = subject; Graph = graph }
 
-type PropertyValues<'a>(subject: Node, predicateUri: string, objectFactory, nodeFactory) =
+type PropertyValues<'a>(subject: Resource, predicateUri: string, objectFactory, nodeFactory) =
     let predicate = subject.Graph.CreateUriNode(UriFactory.Create predicateUri)
     let getValues() =
         subject.Graph.GetTriplesWithSubjectPredicate(subject.Node, predicate)

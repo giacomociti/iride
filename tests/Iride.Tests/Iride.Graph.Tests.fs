@@ -20,7 +20,7 @@ type System.Collections.Generic.IEnumerable<'a> with
 type INode with
     member this.Uri = (this :?> IUriNode).Uri
 
-type Node with
+type Resource with
     member this.Uri = this.Node.Uri
 
 let parseTurtle turtle =
@@ -49,7 +49,7 @@ type G1 = GraphProvider<sample1>
 let ``Can load literals`` () =
     let graph = parseTurtle sample1
     let p = G1.Person.Get(graph).Single
-    Assert.AreEqual(Uri "http://example.org/Foo", p.Node.Uri)
+    Assert.AreEqual(Uri "http://example.org/Foo", p.Resource.Uri)
     Assert.AreEqual(Uri "http://example.org/Person", p.Type.Single.Uri)
     Assert.AreEqual(100, p.Age.Single)
     Assert.AreEqual(3.4, p.Num.Single)
@@ -91,7 +91,7 @@ type G2 = GraphProvider<sample2>
 let ``Can load objects`` () =
     let graph = parseTurtle sample2
     let c = G2.Person.Get(graph).Single.LivesIn.Single
-    Assert.AreEqual(Uri "http://example.org/Bar", c.Node.Uri)
+    Assert.AreEqual(Uri "http://example.org/Bar", c.Resource.Uri)
     Assert.AreEqual(Uri "http://example.org/City", c.Type.Single.Uri)
     Assert.AreEqual(10000, c.Population.Single)
 
@@ -131,7 +131,7 @@ let ``Can use schema`` () =
     :p1 a :Person; :age 10 .
     """
     let p = G3.Person.Get(graph).Single
-    Assert.AreEqual(Uri "http://example.org/p1", p.Node.Uri)
+    Assert.AreEqual(Uri "http://example.org/p1", p.Resource.Uri)
     Assert.AreEqual(10, p.Age.Single)
 
 type G4 = GraphProvider<Schema = """
@@ -156,7 +156,7 @@ let ``Can use schema org`` () =
         schema:isbn "abcd"^^xsd:string . # without type annotation won't work
     """
     let b = G4.Book.Get(graph).Single
-    Assert.AreEqual(Uri "http://example.org/b1", b.Node.Uri)
+    Assert.AreEqual(Uri "http://example.org/b1", b.Resource.Uri)
     Assert.AreEqual("abcd", b.Isbn.Single)
 
 [<Test>]
@@ -170,7 +170,7 @@ let ``Can use subclass`` () =
         schema:isbn "abcd"^^xsd:string . # without type annotation won't work
     """
     let b = G4.Audiobook.Get(graph).Single
-    Assert.AreEqual(Uri "http://example.org/b1", b.Node.Uri)
+    Assert.AreEqual(Uri "http://example.org/b1", b.Resource.Uri)
     Assert.AreEqual("abcd", b.Isbn.Single)
 
 [<Test>]
@@ -182,7 +182,7 @@ let ``Can add instance`` () =
     let p = G3.Person.Add(graph, graph.CreateUriNode(nodeUri))
 
     Assert.AreEqual(p, G3.Person.Get(graph).Single)
-    Assert.AreEqual(nodeUri, p.Node.Uri)
+    Assert.AreEqual(nodeUri, p.Resource.Uri)
     let triple = graph.Triples.Single
     Assert.AreEqual(nodeUri, triple.Subject.Uri)
     Assert.AreEqual(Uri RdfSpecsHelper.RdfType, triple.Predicate.Uri)
