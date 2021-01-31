@@ -13,7 +13,7 @@ Given the following [Turtle](https://www.w3.org/TR/turtle/) file _alice.ttl_:
 @prefix : <http://example.org/> .
 
 :alice a :Person ;
-    :age :42 .
+    :age 42 .
 ```
 
 The type provider infers a type `Person` with a property `Age` and a `Get` factory method returning the instances in a given graph.
