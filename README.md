@@ -1,13 +1,13 @@
 [![NuGet Badge](https://buildstats.info/nuget/Iride)](https://www.nuget.org/packages/Iride)
 [![Build status](https://ci.appveyor.com/api/projects/status/v69lb0ykwmm0iuf6/branch/master?svg=true)](https://ci.appveyor.com/project/giacomociti/iride/branch/master)
 
-This library contains F# generative type providers for RDF and SPARQL. It is built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
+This library contains F# generative [type providers](https://docs.microsoft.com/en-us/dotnet/fsharp/tutorials/type-providers/) for RDF and SPARQL. It is built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
 
 ## GraphProvider
 
 _GraphProvider_ generates types from a schema or from a sample.
 
-Given the following [Turtle](https://www.w3.org/TR/turtle/) file _alice.ttl_:
+Given the following [Turtle](https://www.w3.org/TR/turtle/) sample file _alice.ttl_:
 
 ```ttl
 @prefix : <http://example.org/> .
@@ -24,13 +24,10 @@ open VDS.RDF
 
 type G = GraphProvider<"alice.ttl">
 
-let graph = new Graph()
-Parsing.FileLoader.Load(graph, "alice.ttl")
-
-let p =  G.Person.Get(graph) |> Seq.exactlyOne
-p.Age
-|> Seq.exactlyOne
-|> printfn "%i"
+let printAge (graph: IGraph) =
+    for person in G.Person.Get(graph) do
+        for age in person.Age do
+            printfn "%i" age
 
 ```
 
@@ -49,6 +46,8 @@ type G = GraphProvider<Schema = """
     """>
 ```
 
+Notice also that the parameter, both for the schema and for the sample, can be either a file path or inline text.
+
 ## SparqlQueryProvider
 
 _SparqlQueryProvider_ checks SPARQL queries at design time, in the same vein as [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
@@ -57,7 +56,7 @@ For example it detects syntax errors in SPARQL text:
 ![](https://github.com/giacomociti/iride/blob/master/tests/Ask.PNG)
 
 It also provides typed input parameters and (for SELECT queries) typed `Result` objects.
-In the following example the type provider generates a type `Q` with a static method `GetText` and inner type `Q.Result`.
+In the following example, the type provider generates a type `Q` with a static method `GetText` and a nested type `Q.Result`.
 The former allows to set input parameters (replacing _$INT_ with _42_ in the example).
 The latter is a typed wrapper of `SparqlResult` objects, with properties corresponding to
 the output variables (`s` and `IRI_p` in the example) of the query.
@@ -78,11 +77,13 @@ for r in exec(query) do
     // ....
 ```
 
-In SPARQL, output variables start with either '?' or '$' but, in practice, only '?' is used.
-Hence this library hijacks the prefix '$' to indicate input parameters.
+In SPARQL, output variables start with
+either `?` or `$` but, in practice, only `?` is used.
+Hence this library hijacks the prefix `$` to indicate input parameters.
 
 Furthermore, upper case data type hints (e.g. IRI, INT) instruct the type provider to
-assign types to parameters and variables. Notice however that triple stores
+assign types to parameters and variables.
+Notice, however, that triple stores
 may return unparseable values due to the schemaless nature of RDF.
 
 Supported data types are IRI, LIT, INT, NUM, DATE, TIME, BOOL.
