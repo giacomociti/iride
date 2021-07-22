@@ -48,6 +48,10 @@ type CommandRuntime =
         graph.Assert(subject, typeNode, classNode)
         factory { Node = subject; Graph = graph }
 
+    static member AddInstance(graph: IGraph, subject: System.Uri, classUri: string, factory) =
+        CommandRuntime.AddInstance(graph, graph.CreateUriNode subject, classUri, factory)
+       
+
 type PropertyValues<'a>(subject: Resource, predicateUri: string, objectFactory, nodeFactory) =
     let predicate = subject.Graph.CreateUriNode(UriFactory.Create predicateUri)
     let getValues() =

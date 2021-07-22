@@ -35,6 +35,10 @@ type GraphProvider (config : TypeProviderConfig) as this =
         <@@ CommandRuntime.AddInstance(Unchecked.defaultof<IGraph>, Unchecked.defaultof<INode>, "", id) @@>
         |> makeGenericMethod [elementType]
 
+    let addInstanceByUriMethodInfo elementType =
+        <@@ CommandRuntime.AddInstance(Unchecked.defaultof<IGraph>, Unchecked.defaultof<Uri>, "", id) @@>
+        |> makeGenericMethod [elementType]
+
     let overrideEquals (providedType: ProvidedTypeDefinition) property =
         match <@@ "".GetHashCode() @@> with
         | Patterns.Call(_, m, _) -> 
@@ -114,6 +118,21 @@ type GraphProvider (config : TypeProviderConfig) as this =
              isStatic = true)
          |> providedType.AddMember
 
+    let addAddMethodByUri (providedType: ProvidedTypeDefinition) (classType: ClassType) ctor =
+        ProvidedMethod("Add", 
+                parameters = [ProvidedParameter("graph", typeof<IGraph>); ProvidedParameter("node", typeof<Uri>)], 
+                returnType = providedType, 
+                invokeCode = (function
+                    | [graph; node] -> 
+                        let x = Var("x", typeof<Resource>)
+                        let converter = Expr.Lambda(x, Expr.NewObject(ctor, [Expr.Var x]))
+                        let addInstanceMethod = addInstanceByUriMethodInfo providedType
+                        let classUri = Expr.Value classType.Name.AbsoluteUri
+                        Expr.Call(addInstanceMethod, [graph; node; classUri; converter])
+                    | _ -> failwith "wrong method params for Add"), 
+                isStatic = true)
+            |> providedType.AddMember
+
     let createTypeForRdfClass (providedAssembly, (classType: ClassType), propertyName) =
         let typeName = getName classType.Name
         let providedType = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
@@ -123,6 +142,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
         overrideEquals providedType property
         addGetMethod providedType classType ctor
         addAddMethod providedType classType ctor
+        addAddMethodByUri providedType classType ctor
         providedType
 
     let createType (typeName, sample, schema) =

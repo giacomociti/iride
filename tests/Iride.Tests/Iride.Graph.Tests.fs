@@ -179,7 +179,7 @@ let ``Can add instance`` () =
     Assert.IsEmpty(G3.Person.Get(graph))
 
     let nodeUri = Uri "http://example.org/p1"
-    let p = G3.Person.Add(graph, graph.CreateUriNode(nodeUri))
+    let p = G3.Person.Add(graph, nodeUri)
 
     Assert.AreEqual(p, G3.Person.Get(graph).Single)
     Assert.AreEqual(nodeUri, p.Resource.Uri)
@@ -191,9 +191,8 @@ let ``Can add instance`` () =
 [<Test>]
 let ``Can add literal property`` () =
     let graph = new Graph()
-    let nodeUri = Uri "http://example.org/p1"
 
-    let p = G3.Person.Add(graph, graph.CreateUriNode(nodeUri))
+    let p = G3.Person.Add(graph, Uri "http://example.org/p1")
     Assert.IsEmpty(p.Age)
 
     p.Age.Add(25)
@@ -207,14 +206,14 @@ let ``Can add literal property`` () =
 let ``Can add property`` () =
     let graph = new Graph()
     let personUri = Uri "http://example.org/p1"
-    let p = G2.Person.Add(graph, graph.CreateUriNode(personUri))
+    let p = G2.Person.Add(graph, personUri)
     Assert.IsEmpty(p.LivesIn)
 
-    let c1 = G2.City.Add(graph, graph.CreateUriNode(Uri "http://example.org/c1"))
+    let c1 = G2.City.Add(graph, graph.CreateBlankNode())
     p.LivesIn.Add(c1)
     Assert.AreEqual(c1, p.LivesIn.Single)
 
-    let c2 = G2.City.Add(graph, graph.CreateUriNode(Uri "http://example.org/c2"))
+    let c2 = G2.City.Add(graph, Uri "http://example.org/c2")
     p.LivesIn.Add(c2)
     Assert.AreEqual(2,  Seq.length p.LivesIn)
     Assert.Contains(c1, Seq.toArray p.LivesIn)
