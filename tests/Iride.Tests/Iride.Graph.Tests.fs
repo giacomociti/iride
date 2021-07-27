@@ -219,6 +219,23 @@ let ``Can add property`` () =
     Assert.Contains(c1, Seq.toArray p.LivesIn)
     Assert.Contains(c2, Seq.toArray p.LivesIn)
 
+[<Test>]
+let ``Can retract properties`` () =
+    let graph = new Graph()
+
+    let c = G2.City.Add(graph, graph.CreateBlankNode())
+    c.Population.Add(10000)
+    let p = G2.Person.Add(graph, graph.CreateBlankNode())
+    p.LivesIn.Add(c)
+
+    p.LivesIn.Remove(c)
+    Assert.IsEmpty(p.LivesIn)
+
+    c.Population.Remove(10000)
+    Assert.IsEmpty(c.Population)
+
+
+
 
 [<Literal>]
 let sample3 = """
