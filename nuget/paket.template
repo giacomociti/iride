@@ -20,9 +20,8 @@ description
     UriProvider generates Uri properties for IRIs in RDF vocabularies.
     SparqlCommandProvider and SparqlQueryProvider provide some type safety for SPARQL.
 files
-    bin/Release/netstandard2.0/Iride.* ==> lib/netstandard2.0
-    bin/Release/typeproviders/fsharp41/netstandard2.0/*.dll ==> typeproviders/fsharp41/netstandard2.0
-    bin/Release/typeproviders/fsharp41/netcoreapp2.0/*.dll ==> typeproviders/fsharp41/netcoreapp2.0
+    ../src/Iride/bin/Release/netstandard2.1/Iride.* ==> lib/netstandard2.1
+    ../src/Iride/bin/Release/typeproviders/fsharp41/netstandard2.1/*.dll ==> typeproviders/fsharp41/netstandard2.1
 references
     Iride.dll
 dependencies

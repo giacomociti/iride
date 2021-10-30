@@ -1,4 +1,6 @@
-group Test
-NUnit
 FSharp.Core
 dotNetRDF
+group Test
+NUnit
+NUnit3TestAdapter version_in_path: true
+Microsoft.NET.Test.Sdk
