@@ -9,11 +9,11 @@ build_script:
   - ps: >-
       dotnet build -c release
 
-      dotnet paket pack src/Iride --version $env:APPVEYOR_BUILD_VERSION
+      dotnet paket pack nuget --version $env:APPVEYOR_BUILD_VERSION
 test_script:
   - ps: dotnet test -c release
 artifacts:
-  - path: src\Iride\*.nupkg
+  - path: nuget\*.nupkg
     name: nuget
 
 deploy:
