@@ -67,8 +67,14 @@ type PropertyValues<'a>(subject: Resource, predicateUri: string, objectFactory, 
     member _.Add(item: 'a) =
         subject.Graph.Assert(subject.Node, predicate, nodeFactory item)
 
+    member _.Add(item: 'a, graph: IGraph) =
+        graph.Assert(subject.Node, predicate, nodeFactory item)
+
     member _.Remove(item: 'a) =
         subject.Graph.Retract(subject.Node, predicate, nodeFactory item)
+
+    member _.Remove(item: 'a, graph: IGraph) =
+        graph.Retract(subject.Node, predicate, nodeFactory item)        
 
 module SchemaQuery =
 
