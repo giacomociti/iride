@@ -6,7 +6,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <FSharpToolsDirectory>typeproviders</FSharpToolsDirectory>
     <PackagePath>typeproviders</PackagePath>
-    <Version>0.5.2</Version>
+    <Version>0.5.3</Version>
   </PropertyGroup>
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />  
   <ItemGroup>
