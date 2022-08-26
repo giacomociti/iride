@@ -79,7 +79,7 @@ module SparqlProviderlHelper =
         |> Seq.map (fun x -> { ParameterName = x; Type = knownDataType x })
         |> List.ofSeq
 
-    let getUnknownUris (namespaceMapper: NamespaceMapper) isUnkown sparql =
+    let getUnknownUris (namespaceMapper: INamespaceMapper) isUnkown sparql =
         let namespaceUris =
             namespaceMapper.Prefixes
             |> Seq.map namespaceMapper.GetNamespaceUri
@@ -101,7 +101,7 @@ module SparqlProviderlHelper =
                 | _ -> ()
         ]
 
-    let checkSchema (namespaceMapper: NamespaceMapper) (sparql: string) (uris: Uri list) =
+    let checkSchema (namespaceMapper: INamespaceMapper) (sparql: string) (uris: Uri list) =
         let knownUris = uris |> List.map (fun x -> x.AbsoluteUri) |> Set.ofList
         let isUnkown uri = not (knownUris.Contains uri)
         let unknownUris = getUnknownUris namespaceMapper isUnkown sparql

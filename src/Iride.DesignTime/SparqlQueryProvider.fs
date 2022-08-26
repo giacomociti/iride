@@ -26,12 +26,12 @@ type SparqlQueryProvider (config : TypeProviderConfig) as this =
     let createResultType (providedAssembly: ProvidedAssembly) (bindings: ResultVariables) =
         let resultType = ProvidedTypeDefinition(providedAssembly, ns, "Result", Some typeof<obj>, isErased=false)
 
-        let field = ProvidedField("_result", typeof<SparqlResult>)
+        let field = ProvidedField("_result", typeof<ISparqlResult>)
         resultType.AddMember field
 
         let ctor = 
             ProvidedConstructor(
-                [ProvidedParameter("result", typeof<SparqlResult>)], 
+                [ProvidedParameter("result", typeof<ISparqlResult>)], 
                 invokeCode = fun args -> 
                     match args with
                     | [this; result] ->
@@ -44,7 +44,7 @@ type SparqlQueryProvider (config : TypeProviderConfig) as this =
             | [this] ->
                 let varName = v.VariableName
                 let result = Expr.FieldGet(this, field)
-                let node = <@@ ((%%result :  SparqlResult).Item varName) @@>
+                let node = <@@ ((%%result :  ISparqlResult).Item varName) @@>
                 Expr.Call(getConverterMethod v.Type, [node])
             | _ -> failwith "Expected a single parameter"))
         |>  List.iter resultType.AddMember
@@ -56,8 +56,8 @@ type SparqlQueryProvider (config : TypeProviderConfig) as this =
             | [this] ->
                 let varName = v.VariableName
                 let result = Expr.FieldGet(this, field)
-                let hasValue = <@@ ((%%result: SparqlResult).HasBoundValue varName) @@>
-                let node = <@@ ((%%result: SparqlResult).Item varName) @@>
+                let hasValue = <@@ ((%%result: ISparqlResult).HasBoundValue varName) @@>
+                let node = <@@ ((%%result: ISparqlResult).Item varName) @@>
                 let typedValue = Expr.Call(getConverterMethod v.Type, [node])
                 let some = Expr.Call(typ.GetMethod "Some", [typedValue])
                 let none = Expr.PropertyGet(typ.GetProperty "None")

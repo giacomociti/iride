@@ -13,7 +13,7 @@ type Assert with
         let normalize text = Regex.Replace(text, @"\s+", " ")
         Assert.AreEqual(normalize expected, normalize actual)
 
-let nodeFactory = NodeFactory()
+let nodeFactory = NodeFactory(NodeFactoryOptions())
 let literal = nodeFactory.CreateLiteralNode
 
 let storage =

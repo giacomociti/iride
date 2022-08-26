@@ -45,7 +45,7 @@ module Common =
             let path = IO.Path.Combine(resolutionFolder, turtle)
             if IO.File.Exists path
             then FileLoader.Load(graph, path)
-            else UriLoader.Load(graph, Uri turtle)
+            else Loader().LoadGraph(graph, Uri turtle)
             graph
 
     let getProperties (query: string) (graph: IGraph) =

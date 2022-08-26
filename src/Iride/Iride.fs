@@ -8,7 +8,7 @@ open VDS.RDF.Parsing
 type Resource = { Node: INode; Graph: IGraph }
 
 type CommandRuntime =
-    static member NodeFactory = NodeFactory()
+    static member NodeFactory = NodeFactory(NodeFactoryOptions())
 
     static member GetCmdText(commandText: string, parameterNames: string list, parameterValues: INode array) =
         let sps = SparqlParameterizedString commandText

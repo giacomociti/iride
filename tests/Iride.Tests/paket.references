@@ -1,5 +1,5 @@
 FSharp.Core
-dotNetRDF
+dotNetRDF.Core
 group Test
 NUnit
 NUnit3TestAdapter version_in_path: true

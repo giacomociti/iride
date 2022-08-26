@@ -26,4 +26,4 @@ references
     Iride.dll
 dependencies
   FSharp.Core >= LOCKEDVERSION
-  dotNetRDF >= LOCKEDVERSION
+  dotNetRDF.Core >= LOCKEDVERSION
