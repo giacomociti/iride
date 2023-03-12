@@ -17,48 +17,46 @@ type SchemaReader(graph: IGraph, classQuery, propertyQuery) =
 
     let propertyParametrizedQuery = SparqlParameterizedString propertyQuery
 
+    let label (graph: IGraph) (subject: INode) = 
+        let labelNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#label")
+        graph.GetTriplesWithSubjectPredicate(subject, labelNode)
+        |> Seq.tryHead
+        |> Option.map (fun t -> (t.Object :?> ILiteralNode).Value)
+        |> Option.defaultWith (fun () -> getName subject.Uri) 
+
+    let comment (graph: IGraph) (subject: INode) =
+        let commentNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#comment")
+        graph.GetTriplesWithSubjectPredicate(subject, commentNode)
+        |> Seq.tryHead
+        |> Option.map (fun t -> (t.Object :?> ILiteralNode).Value)
+        |> Option.defaultWith (fun () -> subject.Uri.ToString()) 
+
     let classes (graph: IGraph) =
         let typeNode = graph.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
         let owlNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2002/07/owl#Class")
         let classNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#Class")
-        let labelNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#label")
-        let commentNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#comment")
         graph.GetTriplesWithPredicateObject(typeNode, classNode)
         |> Seq.append (graph.GetTriplesWithPredicateObject(typeNode, owlNode))
         |> Seq.filter (fun x -> x.Subject.NodeType = NodeType.Uri)
         |> Seq.map (fun x ->
-            let uri = x.Subject.Uri
-            let label = 
-                graph.GetTriplesWithSubjectPredicate(x.Subject, labelNode)
-                |> Seq.tryHead
-                |> Option.map (fun t -> (t.Object :?> ILiteralNode).Value)
-                |> Option.defaultWith (fun () -> getName uri) 
-            let comment =
-                graph.GetTriplesWithSubjectPredicate(x.Subject, commentNode)
-                |> Seq.tryHead
-                |> Option.map (fun t -> (t.Object :?> ILiteralNode).Value)
-                |> Option.defaultWith (fun () -> uri.ToString()) 
-            {| Uri = uri; Label = label; Comment = comment |})
+            {| Uri = x.Subject.Uri; Label = label graph x.Subject; Comment = comment graph x.Subject |})
 
     let properties (classUri: Uri) (graph: IGraph)  =
-        let typeNode = graph.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
-        let propertyNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property")
         let domainNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#domain")
         let rangeNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#range")
         graph.GetTriplesWithPredicateObject(domainNode, graph.CreateUriNode(classUri))
-        |> Seq.filter (fun x ->
-            graph.ContainsTriple(new Triple(x.Subject, typeNode, propertyNode))
-        )
         |> Seq.map (fun x ->
             let ranges = 
                 graph.GetTriplesWithSubjectPredicate(x.Subject, rangeNode)
-                |> Seq.map (fun t -> t.Object.Uri)
+                |> Seq.map (fun t -> t.Object)
                 |> Seq.toList
-            let range =
+            {| Uri = x.Subject.Uri
+               Range = 
                 match ranges with
-                | [ uri ] -> uri
+                | [ r ] when r.NodeType = NodeType.Uri -> r.Uri
                 | _ -> Uri "http://www.w3.org/2000/01/rdf-schema#Resource"
-            {| Uri = x.Subject.Uri; Range = range |})
+               Label = label graph x.Subject
+               Comment = comment graph x.Subject |})
 
     member _.GetClasses () =
         if classQuery = "" then graph else graph.ExecuteQuery(classQuery) :?> IGraph
@@ -275,7 +273,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
     let createTypeForRdfClass classUri label comment =
         let typeName = getName classUri
         let providedType = ProvidedTypeDefinition(typeName, Some typeof<Resource>, hideObjectMethods = true)
-        providedType.AddXmlDoc (sprintf "%s %s %s" label classUri.AbsoluteUri comment)
+        providedType.AddXmlDoc (sprintf "<summary>%s %s %s</summary>" label classUri.AbsoluteUri comment)
         providedType.AddMembersDelayed (fun () -> createMembersForRdfClass providedType classUri)
         providedType
 
@@ -302,9 +300,13 @@ type GraphProvider (config : TypeProviderConfig) as this =
         |> Seq.iter (fun (KeyValue (classUri, classType)) -> classType.AddMembersDelayed (fun () ->
             schemaReader.GetProperties(classUri)
             |> Seq.map (fun x ->
-                match classes.TryGetValue x.Uri with
-                | true, classType -> objectProperty x.Uri x.Range classType
-                | _ -> literalProperty x.Uri x.Range)
+                let prop =
+                    match classes.TryGetValue x.Uri with
+                    | true, classType -> objectProperty x.Uri x.Range classType
+                    | _ -> literalProperty x.Uri x.Range
+                prop.AddXmlDoc (sprintf "<summary>%s %s %s</summary>" x.Label classUri.AbsoluteUri x.Comment)
+                prop)
+
             |> Seq.toList))
 
         Seq.iter providedType.AddMember classes.Values
