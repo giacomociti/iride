@@ -19,12 +19,15 @@ type SchemaReader(graph: IGraph, classQuery, propertyQuery) =
 
     let classes (graph: IGraph) =
         let typeNode = graph.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
+        let owlNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2002/07/owl#Class")
         let classNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#Class")
         let labelNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#label")
         let commentNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#comment")
         graph.GetTriplesWithPredicateObject(typeNode, classNode)
+        |> Seq.append (graph.GetTriplesWithPredicateObject(typeNode, owlNode))
+        |> Seq.filter (fun x -> x.Subject.NodeType = NodeType.Uri)
         |> Seq.map (fun x ->
-            let uri = x.Subject.Uri // beware of bnodes
+            let uri = x.Subject.Uri
             let label = 
                 graph.GetTriplesWithSubjectPredicate(x.Subject, labelNode)
                 |> Seq.tryHead
