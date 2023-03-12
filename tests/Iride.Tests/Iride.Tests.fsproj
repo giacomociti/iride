@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
@@ -11,9 +11,11 @@
     <Compile Include="Iride.Tests.fs" />
     <Compile Include="Iride.Sparql.Tests.fs" />
     <Compile Include="Iride.Graph.Tests.fs" />
+    <Compile Include="Iride.SchemaReader.Tests.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Iride\Iride.fsproj" />
+    <ProjectReference Include="..\..\src\Iride.DesignTime\Iride.DesignTime.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

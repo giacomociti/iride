@@ -13,9 +13,134 @@ open VDS.RDF
 open VDS.RDF.Parsing
 open VDS.RDF.Query
 
+type SchemaReader(graph: IGraph, classQuery, propertyQuery) =
+
+    let propertyParametrizedQuery = SparqlParameterizedString propertyQuery
+
+    let classes (graph: IGraph) =
+        let typeNode = graph.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
+        let classNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#Class")
+        let labelNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#label")
+        let commentNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#comment")
+        graph.GetTriplesWithPredicateObject(typeNode, classNode)
+        |> Seq.map (fun x ->
+            let uri = x.Subject.Uri // beware of bnodes
+            let label = 
+                graph.GetTriplesWithSubjectPredicate(x.Subject, labelNode)
+                |> Seq.tryHead
+                |> Option.map (fun t -> (t.Object :?> ILiteralNode).Value)
+                |> Option.defaultWith (fun () -> getName uri) 
+            let comment =
+                graph.GetTriplesWithSubjectPredicate(x.Subject, commentNode)
+                |> Seq.tryHead
+                |> Option.map (fun t -> (t.Object :?> ILiteralNode).Value)
+                |> Option.defaultWith (fun () -> uri.ToString()) 
+            {| Uri = uri; Label = label; Comment = comment |})
+
+    let properties (classUri: Uri) (graph: IGraph)  =
+        let typeNode = graph.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
+        let propertyNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property")
+        let domainNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#domain")
+        let rangeNode = graph.CreateUriNode(UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#range")
+        graph.GetTriplesWithPredicateObject(domainNode, graph.CreateUriNode(classUri))
+        |> Seq.filter (fun x ->
+            graph.ContainsTriple(new Triple(x.Subject, typeNode, propertyNode))
+        )
+        |> Seq.map (fun x ->
+            let ranges = 
+                graph.GetTriplesWithSubjectPredicate(x.Subject, rangeNode)
+                |> Seq.map (fun t -> t.Object.Uri)
+                |> Seq.toList
+            let range =
+                match ranges with
+                | [ uri ] -> uri
+                | _ -> Uri "http://www.w3.org/2000/01/rdf-schema#Resource"
+            {| Uri = x.Subject.Uri; Range = range |})
+
+    member _.GetClasses () =
+        if classQuery = "" then graph else graph.ExecuteQuery(classQuery) :?> IGraph
+        |> classes
+
+    member _.GetProperties (classUri: Uri) =
+        if propertyQuery = "" 
+        then graph 
+        else 
+            propertyParametrizedQuery.SetUri("domain", classUri)
+            graph.ExecuteQuery(propertyParametrizedQuery) :?> IGraph
+        |> properties classUri
+
+module GraphLoader =
+    let tryUri source =
+        try Some (Uri source)
+        with _ -> None
+
+    let tryFile resolutionFolder source =
+        [ source; IO.Path.Combine(resolutionFolder, source)]
+        |> List.tryFind IO.File.Exists
+
+    let loadFromUri (uri: Uri) =
+        let graph = new Graph()
+        let ext = IO.Path.GetExtension(uri.AbsoluteUri).TrimStart('.')
+        match MimeTypesHelper.GetDefinitionsByFileExtension(ext) |> Seq.toList with
+        | mimeType::_ ->
+            if mimeType.CanParseRdf 
+            then graph.LoadFromUri(uri, mimeType.GetRdfParser())
+            elif mimeType.CanParseRdfDatasets
+            then
+                let ts = new TripleStore()
+                ts.LoadFromUri(uri, mimeType.GetRdfDatasetParser())
+                ts.Graphs |> Seq.iter graph.Merge
+            else graph.LoadFromUri(uri)
+        | _ -> graph.LoadFromUri(uri)
+        graph
+
+    let loadFromFile file =
+        let graph = new Graph()
+        FileLoader.Load(graph, file)
+        graph
+
+    let loadFromText text =
+        let graph = new Graph()
+        StringParser.Parse(graph, text)
+        graph
+
+    let load resolutionFolder source =
+        match tryUri source with
+        | Some uri -> loadFromUri uri
+        | None ->
+            match tryFile resolutionFolder source with
+            | Some file -> loadFromFile file
+            | None -> loadFromText source
+
+let classesFromSampleQuery = """
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+    CONSTRUCT { ?class a rdfs:Class } 
+    WHERE { ?s a ?class }
+    """
+
+let propertiesFromSampleQuery = """
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+    CONSTRUCT { 
+        ?property a rdf:Property ;
+            rdfs:domain @domain ;
+            rdfs:range ?rangeDataType ;
+            rdfs:range ?rangeClass .
+    } 
+    WHERE { 
+        ?s a @domain ;
+            ?property ?o .
+        BIND (datatype(?o) AS ?rangeDataType)
+        OPTIONAL { ?o a ?rangeClass } 
+    }
+    """
+
 type Arguments = {
     TypeName: string
-    Source: string
+    Sample: string
+    Schema: string
     ClassQuery: string
     PropertyQuery: string
 }
@@ -94,56 +219,6 @@ type GraphProvider (config : TypeProviderConfig) as this =
                 | _ -> failwith "wrong method params for Add"), 
             isStatic = true)
 
-    let getResources (query: string) (graph: IGraph) =
-        let results = graph.ExecuteQuery query
-        [
-            for r in results :?> SparqlResultSet do
-                let uri = (r.["uri"] :?> IUriNode).Uri
-                let label =
-                    match r.TryGetBoundValue "label" with
-                    | true, x -> (x :?> ILiteralNode).Value
-                    | false, _ -> getName uri
-                let comment =
-                    match r.TryGetBoundValue "comment" with
-                    | true, x -> (x :?> ILiteralNode).Value
-                    | false, _ -> uri.ToString()
-
-                yield {| Uri = uri; Label = label; Comment = comment |}
-        ]
-
-    let tryUri source =
-        try Some (Uri source)
-        with _ -> None
-
-    let tryFile resolutionFolder source =
-        [ source; IO.Path.Combine(resolutionFolder, source)]
-        |> List.tryFind IO.File.Exists
-
-    let loadGraph (graph: Graph, uri: Uri) =
-        let ext = IO.Path.GetExtension(uri.AbsoluteUri).TrimStart('.')
-        match MimeTypesHelper.GetDefinitionsByFileExtension(ext) |> Seq.toList with
-        | mimeType::_ ->
-            if mimeType.CanParseRdf 
-            then graph.LoadFromUri(uri, mimeType.GetRdfParser())
-            elif mimeType.CanParseRdfDatasets
-            then
-                let ts = new TripleStore()
-                ts.LoadFromUri(uri, mimeType.GetRdfDatasetParser())
-                ts.Graphs |> Seq.iter graph.Merge
-            else graph.LoadFromUri(uri)
-        | _ -> graph.LoadFromUri(uri)
-
-    let sourceGraph resolutionFolder source =
-        let graph = new Graph()
-        match tryUri source with
-        | Some uri ->
-            loadGraph(graph, uri)
-        | None ->
-            match tryFile resolutionFolder source with
-            | Some file -> FileLoader.Load(graph, file)
-            | None -> StringParser.Parse(graph, source)
-        graph
-
     let getLiteralFactory knownDataType =
         let converterMethodInfo = getConverterMethod knownDataType
         let r = Var("r", typeof<Resource>)
@@ -161,29 +236,6 @@ type GraphProvider (config : TypeProviderConfig) as this =
         let e = Expr.Var r
         let ctor = providedType.GetConstructor [| typeof<Resource> |]
         Expr.Lambda(r, Expr.NewObject(ctor, [e]))
-
-    let defaultClassQuery = """
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-
-        SELECT ?uri ?label ?comment WHERE { 
-            ?uri a rdfs:Class
-            OPTIONAL { ?uri rdfs:label ?label }
-            OPTIONAL { ?uri rdfs:comment ?comment }
-        }
-        """
-
-    let defaultPropertyQuery = """
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        PREFIX schema: <https://schema.org/>
-
-        SELECT ?property ?range WHERE {
-        ?property a rdf:Property ;
-            schema:domainIncludes @domain ;
-            schema:rangeIncludes ?range ;
-        }
-        """
 
     let literalProperty (propertyUri: Uri) (propertyTypeUri: Uri) =
         let dataType = knownDataType propertyTypeUri.AbsoluteUri
@@ -210,20 +262,6 @@ type GraphProvider (config : TypeProviderConfig) as this =
             Expr.NewObject(ctor, [this; predicateUri; objectFactory; nodeFactory])
         | _ -> failwith "Expected a single parameter")
 
-    let prop (graph: IGraph) (classes: Collections.Generic.IDictionary<Uri, ProvidedTypeDefinition>) (propertyQuery: SparqlParameterizedString) (classType:Uri) () =
-        propertyQuery.SetUri("domain", classType)
-        graph.ExecuteQuery(propertyQuery) :?> SparqlResultSet
-        |> Seq.map (fun x -> x["property"].Uri, x["range"].Uri)
-        |> Seq.groupBy fst
-        |> Seq.map (fun (property, ranges) ->
-            match Seq.toList ranges with 
-            | [(_, r)] -> 
-                if classes.ContainsKey r
-                then objectProperty property r (classes[r])
-                else literalProperty property r 
-            | _ -> literalProperty property (Uri "http://dummy.org")) // fallback to Node
-        |> Seq.toList
-
     let createMembersForRdfClass providedType uri =
         let ctor = constructor ()
         let get = methodGet providedType uri
@@ -231,44 +269,64 @@ type GraphProvider (config : TypeProviderConfig) as this =
         let addByUri = methodAddByUri providedType uri
         [ ctor :> MemberInfo; add :> MemberInfo; get :> MemberInfo; addByUri :> MemberInfo ]
 
-    let createTypeForRdfClass uri label comment =
-        let typeName = getName uri
+    let createTypeForRdfClass classUri label comment =
+        let typeName = getName classUri
         let providedType = ProvidedTypeDefinition(typeName, Some typeof<Resource>, hideObjectMethods = true)
-        providedType.AddMembersDelayed (fun () -> createMembersForRdfClass providedType uri)
-        providedType.AddXmlDocDelayed (fun () -> sprintf "%s %s %s" label uri.AbsoluteUri comment)
+        providedType.AddXmlDoc (sprintf "%s %s %s" label classUri.AbsoluteUri comment)
+        providedType.AddMembersDelayed (fun () -> createMembersForRdfClass providedType classUri)
         providedType
 
-    let createType (args: Arguments) =
+    let createSchemaReader args =
+        match args.Schema, args.Sample with
+        | schema, "" -> 
+            let graph = GraphLoader.load config.ResolutionFolder schema
+            SchemaReader(graph, args.ClassQuery, args.PropertyQuery)
+        | "", sample -> 
+            let graph = GraphLoader.load config.ResolutionFolder sample
+            let classQuery = if args.ClassQuery = "" then classesFromSampleQuery else args.ClassQuery
+            let propertyQuery = if args.PropertyQuery = "" then propertiesFromSampleQuery else args.PropertyQuery
+            SchemaReader(graph, classQuery, propertyQuery)
+        | _ -> failwith "Need either Schema or Sample (not both)"
+
+    let createType args =
         let providedType = ProvidedTypeDefinition(executingAssembly, ns, args.TypeName, Some typeof<obj>, isErased=true)
-        let graph = sourceGraph config.ResolutionFolder args.Source
+        let schemaReader = createSchemaReader args
         let classes =
-            getResources args.ClassQuery graph
-            |> List.map (fun x -> x.Uri, createTypeForRdfClass x.Uri x.Label x.Comment)
+            schemaReader.GetClasses()
+            |> Seq.map (fun x -> x.Uri, createTypeForRdfClass x.Uri x.Label x.Comment)
             |> dict
-        let propQuery = SparqlParameterizedString args.PropertyQuery
         classes
-        |> Seq.iter (fun (KeyValue (classUri, classType)) -> classType.AddMembersDelayed (prop graph classes propQuery classUri))
-        classes.Values
-        |> Seq.iter providedType.AddMember
+        |> Seq.iter (fun (KeyValue (classUri, classType)) -> classType.AddMembersDelayed (fun () ->
+            schemaReader.GetProperties(classUri)
+            |> Seq.map (fun x ->
+                match classes.TryGetValue x.Uri with
+                | true, classType -> objectProperty x.Uri x.Range classType
+                | _ -> literalProperty x.Uri x.Range)
+            |> Seq.toList))
+
+        Seq.iter providedType.AddMember classes.Values
         providedType
 
     let providerType = 
         let result = ProvidedTypeDefinition(executingAssembly, ns, "GraphProvider", Some typeof<obj>, isErased=true)
         let parameters = [
-            ProvidedStaticParameter("Source", typeof<string>, "")
-            ProvidedStaticParameter("ClassQuery", typeof<string>, defaultClassQuery)
-            ProvidedStaticParameter("PropertyQuery", typeof<string>, defaultPropertyQuery)
+            ProvidedStaticParameter("Sample", typeof<string>, "")
+            ProvidedStaticParameter("Schema", typeof<string>, "")
+            ProvidedStaticParameter("ClassQuery", typeof<string>, "")
+            ProvidedStaticParameter("PropertyQuery", typeof<string>, "")
         ]
         result.DefineStaticParameters(parameters, fun typeName args ->
             let arguments = { 
                 TypeName = typeName
-                Source = string args[0]
-                ClassQuery = string args[1]
-                PropertyQuery = string args[2] }
+                Sample = string args[0]
+                Schema = string args[1]
+                ClassQuery = string args[2]
+                PropertyQuery = string args[3] }
             cache.GetOrAdd(arguments, createType))
 
         result.AddXmlDoc """<summary>Type provider of RDF classes.</summary>
-           <param name='Source'>RDF schema or sample (URL, file or text).</param>
+           <param name='Sample'>RDF sample (URL, file or literal).</param>
+           <param name='Schema'>RDF schema (URL, file or literal).</param>
            <param name='ClassQuery'>SPARQL query for classes.</param>
            <param name='PropertyQuery'>SPARQL query for properties.</param>
          """
