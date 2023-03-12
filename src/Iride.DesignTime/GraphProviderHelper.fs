@@ -13,12 +13,18 @@ module GraphProviderHelper =
     type ClassType = { Name: Uri; Properties: IDictionary<Uri, PropertyType> }
 
     let knownDataType = function
-        | "http://www.w3.org/2001/XMLSchema#string" -> KnownDataType.Literal
-        | "http://www.w3.org/2001/XMLSchema#integer" -> KnownDataType.Integer
-        | "http://www.w3.org/2001/XMLSchema#date" -> KnownDataType.Date
-        | "http://www.w3.org/2001/XMLSchema#dateTime" -> KnownDataType.Time
-        | "http://www.w3.org/2001/XMLSchema#decimal" -> KnownDataType.Number
-        | "http://www.w3.org/2001/XMLSchema#boolean" -> KnownDataType.Boolean
+        | "http://www.w3.org/2001/XMLSchema#string"
+        | "http://schema.org/Text" -> KnownDataType.Literal
+        | "http://www.w3.org/2001/XMLSchema#integer"
+        | "http://schema.org/Integer" -> KnownDataType.Integer
+        | "http://www.w3.org/2001/XMLSchema#date"
+        | "http://schema.org/Date" -> KnownDataType.Date
+        | "http://www.w3.org/2001/XMLSchema#dateTime"
+        | "http://schema.org/DateTime"-> KnownDataType.Time
+        | "http://www.w3.org/2001/XMLSchema#decimal"
+        | "http://schema.org/Number" -> KnownDataType.Number
+        | "http://www.w3.org/2001/XMLSchema#boolean"
+        | "http://schema.org/Boolean" -> KnownDataType.Boolean
         | _ -> KnownDataType.Node
 
     let mergeDuplicates reduction keyValuePairs =
