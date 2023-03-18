@@ -11,6 +11,7 @@
     <Compile Include="Iride.Tests.fs" />
     <Compile Include="Iride.Sparql.Tests.fs" />
     <Compile Include="Iride.Graph.Tests.fs" />
+    <Compile Include="Iride.GraphNavigator.Tests.fs" />
     <Compile Include="Iride.SchemaReader.Tests.fs" />
   </ItemGroup>
   <ItemGroup>
