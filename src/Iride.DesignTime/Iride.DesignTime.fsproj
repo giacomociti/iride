@@ -24,7 +24,7 @@
     <Compile Include="SparqlCommandProvider.fs" />
     <Compile Include="SparqlQueryProvider.fs" />
     <Compile Include="GraphProvider.fs" />
-    <Compile Include="Erased/GraphProvider.fs" />
+    <Compile Include="GraphNavigator.fs" />
     <None Include="paket.references" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

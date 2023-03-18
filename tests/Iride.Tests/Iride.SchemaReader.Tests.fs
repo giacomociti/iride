@@ -2,7 +2,7 @@ module IrideSchemaReaderTests
 
 open System
 open NUnit.Framework
-open Iride.Erased
+open Iride
 open VDS.RDF
 open VDS.RDF.Parsing
 open VDS.RDF.Storage

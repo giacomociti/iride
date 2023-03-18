@@ -27,6 +27,16 @@
         | Time -> <@@ CommandRuntime.AsDateTimeOffset(Unchecked.defaultof<INode>) @@>
         | Boolean -> <@@ CommandRuntime.AsBoolean(Unchecked.defaultof<INode>) @@>
 
+    let getValuesMethodExpression = function
+        | Node -> <@@ CommandRuntime.GetValues(Unchecked.defaultof<Resource>, "") @@>
+        | Iri -> <@@ CommandRuntime.GetUriValues(Unchecked.defaultof<Resource>, "") @@>
+        | Literal -> <@@ CommandRuntime.GetStringValues(Unchecked.defaultof<Resource>, "") @@>
+        | Integer -> <@@ CommandRuntime.GetIntValues(Unchecked.defaultof<Resource>, "") @@>
+        | Number -> <@@ CommandRuntime.GetDecimalValues(Unchecked.defaultof<Resource>, "") @@>
+        | Date -> <@@ CommandRuntime.GetDateTimeValues(Unchecked.defaultof<Resource>, "") @@>
+        | Time -> <@@ CommandRuntime.GetDateTimeOffsetValues(Unchecked.defaultof<Resource>, "") @@>
+        | Boolean -> <@@ CommandRuntime.GetBooleanValues(Unchecked.defaultof<Resource>, "") @@>
+
     let getNodeExtractorMethodExpression = function
         | Node -> <@@ CommandRuntime.ToNode(Unchecked.defaultof<INode>) @@>
         | Iri -> <@@ CommandRuntime.ToNode(Unchecked.defaultof<System.Uri>) @@>
@@ -42,6 +52,8 @@
        | _ -> failwith "Unexpected expression" 
 
     let getConverterMethod = getConverterMethodExpression >> getMethodInfo
+
+    let getValuesMethod = getValuesMethodExpression >> getMethodInfo
 
     let getNodeExtractorMethod = getNodeExtractorMethodExpression >> getMethodInfo
 

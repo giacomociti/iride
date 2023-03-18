@@ -34,7 +34,31 @@ type CommandRuntime =
     static member AsDateTimeOffset(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToDateTimeOffset
     static member AsBoolean(n: INode) = (n :?> ILiteralNode).Value |> XmlConvert.ToBoolean
 
-
+    static member GetValues(r: Resource, propertyUriText) =
+        let predicate = r.Graph.CreateUriNode(UriFactory.Create propertyUriText)
+        r.Graph.GetTriplesWithSubjectPredicate(r.Node, predicate)
+        |> Seq.map (fun x -> x.Object )
+    static member GetUriValues(r: Resource, propertyUriText) =
+        CommandRuntime.GetValues(r, propertyUriText) 
+        |> Seq.map CommandRuntime.AsUri
+    static member GetStringValues(r: Resource, propertyUriText) =
+        CommandRuntime.GetValues(r, propertyUriText) 
+        |> Seq.map CommandRuntime.AsString
+    static member GetIntValues(r: Resource, propertyUriText) =
+        CommandRuntime.GetValues(r, propertyUriText) 
+        |> Seq.map CommandRuntime.AsInt
+    static member GetDecimalValues(r: Resource, propertyUriText) =
+        CommandRuntime.GetValues(r, propertyUriText) 
+        |> Seq.map CommandRuntime.AsDecimal
+    static member GetDateTimeValues(r: Resource, propertyUriText) =
+        CommandRuntime.GetValues(r, propertyUriText) 
+        |> Seq.map CommandRuntime.AsDateTime
+    static member GetDateTimeOffsetValues(r: Resource, propertyUriText) =
+        CommandRuntime.GetValues(r, propertyUriText) 
+        |> Seq.map CommandRuntime.AsDateTimeOffset
+    static member GetBooleanValues(r: Resource, propertyUriText) =
+        CommandRuntime.GetValues(r, propertyUriText) 
+        |> Seq.map CommandRuntime.AsBoolean
 
     static member GetInstances(graph: IGraph, classUri: string, factory) =
         let typeNode = graph.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)

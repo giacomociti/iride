@@ -149,12 +149,12 @@ type Arguments = {
 let cache = Collections.Concurrent.ConcurrentDictionary<Arguments, ProvidedTypeDefinition>()
 
 [<TypeProvider>]
-type GraphProvider (config : TypeProviderConfig) as this =
+type GraphNavigator (config : TypeProviderConfig) as this =
     inherit TypeProviderForNamespaces 
         (config, 
          assemblyReplacementMap = [("Iride.DesignTime", "Iride")],
          addDefaultProbingLocation = true)
-    let ns = "Iride.Erased"
+    let ns = "Iride"
     let executingAssembly = Assembly.GetExecutingAssembly()
 
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
@@ -183,92 +183,35 @@ type GraphProvider (config : TypeProviderConfig) as this =
                 | _ -> failwith "wrong method params for Get"), 
             isStatic = true)
 
-    let methodAdd (providedType: ProvidedTypeDefinition) (classType: Uri) =
-        ProvidedMethod("Add", 
-            parameters = [ProvidedParameter("graph", typeof<IGraph>); ProvidedParameter("node", typeof<INode>)], 
-            returnType = providedType, 
-            invokeCode = (function
-                | [graph; node] -> 
-                    let classUri = classType.AbsoluteUri
-                    <@@
-                        let g = %%graph :> IGraph
-                        let n = %%node :> INode
-                        let typeNode = g.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
-                        let classNode = g.CreateUriNode(UriFactory.Create classUri)
-                        g.Assert(n, typeNode, classNode)
-                        { Node = n; Graph = g }
-                    @@>
-                | _ -> failwith "wrong method params for Add"), 
-            isStatic = true)
-
-    let methodAddByUri (providedType: ProvidedTypeDefinition) (classType: Uri) =
-        ProvidedMethod("Add", 
-            parameters = [ProvidedParameter("graph", typeof<IGraph>); ProvidedParameter("uri", typeof<Uri>)], 
-            returnType = providedType, 
-            invokeCode = (function
-                | [graph; uri] -> 
-                    let classUri = classType.AbsoluteUri
-                    <@@
-                        let g = %%graph :> IGraph
-                        let u = %%uri :> Uri
-                        let n = g.CreateUriNode(u)
-                        let typeNode = g.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
-                        let classNode = g.CreateUriNode(UriFactory.Create classUri)
-                        g.Assert(n, typeNode, classNode)
-                        { Node = n; Graph = g }
-                    @@>
-                | _ -> failwith "wrong method params for Add"), 
-            isStatic = true)
-
-    let getLiteralFactory knownDataType =
-        let converterMethodInfo = getConverterMethod knownDataType
-        let r = Var("r", typeof<Resource>)
-        let e = Expr.Var r
-        let n = <@@ (%%e:Resource).Node @@>
-        Expr.Lambda(r, Expr.Call(converterMethodInfo, [n]))
-
-    let getNodeFactory elementType knownDataType =
-        let nodeExtractorMethodInfo = getNodeExtractorMethod knownDataType
-        let x = Var("x", elementType)
-        Expr.Lambda(x, Expr.Call(nodeExtractorMethodInfo, [Expr.Var x]))
-
-    let getObjectFactory (providedType: Type) =
-        let r = Var("r", typeof<Resource>)
-        let e = Expr.Var r
-        let ctor = providedType.GetConstructor [| typeof<Resource> |]
-        Expr.Lambda(r, Expr.NewObject(ctor, [e]))
-
     let literalProperty (propertyUri: Uri) (propertyTypeUri: Uri) =
         let dataType = knownDataType propertyTypeUri.AbsoluteUri
         let elementType = getType dataType
-        let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<PropertyValues<_>>, [elementType])
-        let predicateUri = Expr.Value propertyTypeUri.AbsoluteUri
-        let objectFactory = getLiteralFactory dataType
-        let nodeFactory = getNodeFactory elementType dataType
+        let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<seq<_>>, [elementType])
+        let propertyUriText = propertyUri.AbsoluteUri
+        let valuesMethodInfo = getValuesMethod dataType
         ProvidedProperty(getName propertyUri, resultType, getterCode = function
         | [this] -> 
-            let ctor = resultType.GetConstructors() |> Seq.exactlyOne
-            Expr.NewObject(ctor, [this; predicateUri; objectFactory; nodeFactory])
+            Expr.Call(valuesMethodInfo, [this; Expr.Value propertyUriText])
         | _ -> failwith "Expected a single parameter")
 
-    let objectProperty (propertyUri: Uri) (propertyTypeUri: Uri) (propertyType: ProvidedTypeDefinition) =
+    let objectProperty (propertyUri: Uri) (propertyType: ProvidedTypeDefinition) =
         let elementType = propertyType :> Type
-        let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<PropertyValues<_>>, [elementType])
-        let predicateUri = Expr.Value propertyTypeUri.AbsoluteUri
-        let objectFactory = getObjectFactory elementType
-        let nodeFactory = <@@ unbox @@>
+        let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<seq<_>>, [elementType])
+        let propertyUriText = propertyUri.AbsoluteUri
         ProvidedProperty(getName propertyUri, resultType, getterCode = function
         | [this] -> 
-            let ctor = resultType.GetConstructors() |> Seq.exactlyOne
-            Expr.NewObject(ctor, [this; predicateUri; objectFactory; nodeFactory])
+            <@@ 
+                let subject = %%this: Resource
+                let predicate = subject.Graph.CreateUriNode(UriFactory.Create propertyUriText)
+                subject.Graph.GetTriplesWithSubjectPredicate(subject.Node, predicate)
+                |> Seq.map (fun x -> { Node = x.Object; Graph = subject.Graph } )
+            @@>
         | _ -> failwith "Expected a single parameter")
 
     let createMembersForRdfClass providedType uri =
         let ctor = constructor ()
         let get = methodGet providedType uri
-        let add = methodAdd providedType uri
-        let addByUri = methodAddByUri providedType uri
-        [ ctor :> MemberInfo; add :> MemberInfo; get :> MemberInfo; addByUri :> MemberInfo ]
+        [ ctor :> MemberInfo; get :> MemberInfo ]
 
     let createTypeForRdfClass classUri label comment =
         let typeName = getName classUri
@@ -301,10 +244,10 @@ type GraphProvider (config : TypeProviderConfig) as this =
             schemaReader.GetProperties(classUri)
             |> Seq.map (fun x ->
                 let prop =
-                    match classes.TryGetValue x.Uri with
-                    | true, classType -> objectProperty x.Uri x.Range classType
+                    match classes.TryGetValue x.Range with
+                    | true, classType -> objectProperty x.Uri classType
                     | _ -> literalProperty x.Uri x.Range
-                prop.AddXmlDoc (sprintf "<summary>%s %s %s</summary>" x.Label classUri.AbsoluteUri x.Comment)
+                prop.AddXmlDoc (sprintf "<summary>%s %s %s</summary>" x.Label x.Uri.AbsoluteUri x.Comment)
                 prop)
 
             |> Seq.toList))
@@ -313,7 +256,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
         providedType
 
     let providerType = 
-        let result = ProvidedTypeDefinition(executingAssembly, ns, "GraphProvider", Some typeof<obj>, isErased=true)
+        let result = ProvidedTypeDefinition(executingAssembly, ns, "GraphNavigator", Some typeof<obj>, isErased=true)
         let parameters = [
             ProvidedStaticParameter("Sample", typeof<string>, "")
             ProvidedStaticParameter("Schema", typeof<string>, "")
