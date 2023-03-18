@@ -23,6 +23,8 @@
     <Compile Include="UriProvider.fs" />
     <Compile Include="SparqlCommandProvider.fs" />
     <Compile Include="SparqlQueryProvider.fs" />
+    <Compile Include="GraphLoader.fs" />
+    <Compile Include="SchemaReader.fs" />
     <Compile Include="GraphProvider.fs" />
     <Compile Include="GraphNavigator.fs" />
     <None Include="paket.references" />
