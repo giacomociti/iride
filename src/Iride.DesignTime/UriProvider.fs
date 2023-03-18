@@ -26,7 +26,8 @@ type UriProvider (config : TypeProviderConfig) as this =
         let result = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
         
         let providedProperties = [
-            for property in getGraphProperties config.ResolutionFolder schema schemaQuery do
+            let graph = GraphLoader.load config.ResolutionFolder schema
+            for property in getProperties schemaQuery graph do
                 let uri = property.Uri.AbsoluteUri
                 let providedProperty = 
                     ProvidedProperty(

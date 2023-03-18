@@ -9,6 +9,8 @@ open Iride
 open Iride.Common
 open TypeProviderHelper
 open GraphProviderHelper
+open VDS.RDF
+open VDS.RDF.Parsing
 
 let classesFromSampleQuery = """
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>

@@ -79,8 +79,8 @@ type SparqlQueryProvider (config : TypeProviderConfig) as this =
             |> SparqlQueryParser().ParseFromString
         
         if rdfSchema <> "" then
-            schemaQuery
-            |> getGraphProperties config.ResolutionFolder rdfSchema 
+            GraphLoader.load config.ResolutionFolder rdfSchema 
+            |> getProperties schemaQuery 
             |> List.map (fun x -> x.Uri)
             |> checkSchema parsedQuery.NamespaceMap queryText
         

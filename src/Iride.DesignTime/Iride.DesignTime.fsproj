@@ -19,11 +19,11 @@
       <Paket>True</Paket>
       <Link>paket-files/ProvidedTypes.fs</Link>
     </Compile>
+    <Compile Include="GraphLoader.fs" />
     <Compile Include="TypeProviderHelper.fs" />
     <Compile Include="UriProvider.fs" />
     <Compile Include="SparqlCommandProvider.fs" />
     <Compile Include="SparqlQueryProvider.fs" />
-    <Compile Include="GraphLoader.fs" />
     <Compile Include="SchemaReader.fs" />
     <Compile Include="GraphProvider.fs" />
     <Compile Include="GraphNavigator.fs" />

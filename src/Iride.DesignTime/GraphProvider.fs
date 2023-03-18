@@ -150,11 +150,11 @@ type GraphProvider (config : TypeProviderConfig) as this =
         let providedAssembly = ProvidedAssembly()
         let providedType = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
         let resourcePropertyName = "Resource"
-        let f = getGraph config.ResolutionFolder 
+        let load = GraphLoader.load config.ResolutionFolder
         let types = 
             match sample, schema with
-            | sample, "" -> f sample |> sample2classes 
-            | "", schema -> f schema |> schema2classes
+            | sample, "" -> load sample |> sample2classes 
+            | "", schema -> load schema |> schema2classes
             | _ -> failwith "Need either Sample or Schema"
             |> Seq.map (fun x -> x.Name, (x, createTypeForRdfClass(providedAssembly, x, resourcePropertyName)))
             |> dict

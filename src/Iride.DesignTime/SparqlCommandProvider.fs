@@ -34,8 +34,8 @@ type SparqlCommandProvider (config : TypeProviderConfig) as this =
             |> SparqlUpdateParser().ParseFromString
 
         if rdfSchema <> "" then
-            schemaQuery
-            |> getGraphProperties config.ResolutionFolder rdfSchema 
+            GraphLoader.load config.ResolutionFolder rdfSchema
+            |> getProperties schemaQuery
             |> List.map (fun x -> x.Uri)
             |> checkSchema parsedCommand.NamespaceMap commandText
 

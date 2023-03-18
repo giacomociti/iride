@@ -5,13 +5,19 @@ open VDS.RDF
 open VDS.RDF.Parsing
 
 module GraphLoader =
-    let tryUri source =
-        try Some (Uri source)
-        with _ -> None
 
-    let tryFile resolutionFolder source =
+    let tryPath resolutionFolder source =
         [ source; IO.Path.Combine(resolutionFolder, source)]
         |> List.tryFind IO.File.Exists
+
+    let loadFromFile file =
+        let graph = new Graph()
+        FileLoader.Load(graph, file)
+        graph
+
+    let tryUri x =
+        try Some (Uri x)
+        with _ -> None
 
     let loadFromUri (uri: Uri) =
         let graph = new Graph()
@@ -29,20 +35,21 @@ module GraphLoader =
         | _ -> graph.LoadFromUri(uri)
         graph
 
-    let loadFromFile file =
-        let graph = new Graph()
-        FileLoader.Load(graph, file)
-        graph
-
     let loadFromText text =
         let graph = new Graph()
         StringParser.Parse(graph, text)
         graph
 
     let load resolutionFolder source =
-        match tryUri source with
-        | Some uri -> loadFromUri uri
+        match tryPath resolutionFolder source |> Option.map loadFromFile with
+        | Some graph -> graph
         | None ->
-            match tryFile resolutionFolder source with
-            | Some file -> loadFromFile file
-            | None -> loadFromText source
+            match tryUri source |> Option.map loadFromUri with
+            | Some graph -> graph
+            | None -> 
+                try loadFromText source 
+                with error ->
+                    failwithf """Could not load RDF neither from file, URL nor literal.
+Current directory is %s, resolution folder is %s.
+Attempting to parse the parameter as literal failed with error: %A""" 
+                        Environment.CurrentDirectory resolutionFolder error
