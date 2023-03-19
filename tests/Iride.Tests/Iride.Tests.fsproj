@@ -13,6 +13,7 @@
     <Compile Include="Iride.Graph.Tests.fs" />
     <Compile Include="Iride.GraphNavigator.Tests.fs" />
     <Compile Include="Iride.SchemaReader.Tests.fs" />
+    <Compile Include="Iride.GraphLoader.Tests.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Iride\Iride.fsproj" />
