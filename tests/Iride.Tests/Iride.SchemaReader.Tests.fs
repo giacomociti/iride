@@ -6,25 +6,24 @@ open Iride
 open VDS.RDF
 open VDS.RDF.Parsing
 open VDS.RDF.Storage
-open ErasedGraphProviderImplementation
+open GraphNavigatorImplementation
 
 let schema = """
 @prefix : <http://example.org/> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-:Person a rdfs:Class .
-"""
+#:Person rdfs:subClassOf :Person .
+:age rdfs:domain :Person .
 
+"""
 
 [<Test>]
 let ``class from schema`` () =
     let graph = GraphLoader.loadFromText schema
-    let reader = SchemaReader(graph, "", "")
+    let reader = SchemaReader(graph, defaultQueryForSchema)
     let person = reader.GetClasses() |> Seq.exactlyOne
-    
     Assert.AreEqual(Uri "http://example.org/Person", person.Uri)
-    Assert.AreEqual("Person", person.Label) // label from URI
-    Assert.AreEqual("http://example.org/Person", person.Comment) // use URI for comment
+    Assert.AreEqual("Person", person.Label)
 
 
 let sample = """
@@ -35,32 +34,29 @@ let sample = """
 [<Test>]
 let ``class from sample`` () =
     let graph = GraphLoader.loadFromText sample
-    let reader = SchemaReader(graph, classesFromSampleQuery, propertiesFromSampleQuery)
+    let reader = SchemaReader(graph, defaultQueryForSample)
     let person = reader.GetClasses() |> Seq.exactlyOne
     
     Assert.AreEqual(Uri "http://example.org/Person", person.Uri)
-    Assert.AreEqual("Person", person.Label) // label from URI
-    Assert.AreEqual("http://example.org/Person", person.Comment) // use URI for comment
+    Assert.AreEqual("Person", person.Label)
 
 
-let schemaWithLabelAndComment = """
+let schemaWithComments = """
 @prefix : <http://example.org/> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-:Person a rdfs:Class ;
-    rdfs:label "Person label" ;
-    rdfs:comment "This is a person class" .
+:age rdfs:domain :Person .
+:age rdfs:comment "This is the age property" .
+:Person rdfs:comment "This is a person class" .
 """
 
 [<Test>]
-let ``class from schema with label and comment`` () =
-    let graph = GraphLoader.loadFromText schemaWithLabelAndComment
-    let reader = SchemaReader(graph, "", "")
-    let person = reader.GetClasses() |> Seq.exactlyOne
-    
-    Assert.AreEqual(Uri "http://example.org/Person", person.Uri)
-    Assert.AreEqual("Person label", person.Label)
-    Assert.AreEqual("This is a person class", person.Comment)
+let ``class from schema with comments`` () =
+    let graph = GraphLoader.loadFromText schemaWithComments
+    let reader = SchemaReader(graph, defaultQueryForSchema)
+    Assert.AreEqual("This is a person class", reader.GetComment(Uri "http://example.org/Person"))
+    Assert.AreEqual("This is the age property", reader.GetComment(Uri "http://example.org/age"))
+
 
 let schemaWithProperty = """
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -77,7 +73,7 @@ let schemaWithProperty = """
 [<Test>]
 let ``property from schema`` () =
     let graph = GraphLoader.loadFromText schemaWithProperty
-    let reader = SchemaReader(graph, "", "")
+    let reader = SchemaReader(graph, defaultQueryForSchema)
     let person = reader.GetClasses() |> Seq.exactlyOne
     let age = reader.GetProperties (person.Uri) |> Seq.exactlyOne
     Assert.AreEqual("http://example.org/age", age.Uri.AbsoluteUri)
@@ -93,7 +89,7 @@ let sampleWithProperty = """
 [<Test>]
 let ``property from sample`` () =
     let graph = GraphLoader.loadFromText sampleWithProperty
-    let reader = SchemaReader(graph, classesFromSampleQuery, propertiesFromSampleQuery)
+    let reader = SchemaReader(graph, defaultQueryForSample)
     let person = reader.GetClasses() |> Seq.exactlyOne
     let properties = reader.GetProperties(person.Uri)
     let age =
@@ -114,17 +110,35 @@ let schemaWithPropertyWithMoreRanges = """
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-:Person a rdfs:Class .
-:age a rdf:Property ;
-    rdfs:domain :Person ;
+:age rdfs:domain :Person ;
     rdfs:range :A, :B .
 """
 
 [<Test>]
 let ``property from schema with multiple ranges`` () =
     let graph = GraphLoader.loadFromText schemaWithPropertyWithMoreRanges
-    let reader = SchemaReader(graph, "", "")
+    let reader = SchemaReader(graph, defaultQueryForSchema)
     let person = reader.GetClasses() |> Seq.exactlyOne
     let age = reader.GetProperties (person.Uri) |> Seq.exactlyOne
     Assert.AreEqual("http://example.org/age", age.Uri.AbsoluteUri)
     Assert.AreEqual("http://www.w3.org/2000/01/rdf-schema#Resource", age.Range.AbsoluteUri)
+
+
+let schemaWithSubClass = """
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix : <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+:Person rdfs:subClassOf :Animal .
+:Animal rdfs:subClassOf :Thing .
+:name rdfs:domain :Thing .
+"""
+
+[<Test>]
+let ``property from superclasses`` () =
+    let graph = GraphLoader.loadFromText schemaWithSubClass
+    let reader = SchemaReader(graph, defaultQueryForSchema)
+    let classes = reader.GetClasses() |> Seq.filter (fun x -> x.Label = "Person") |> Seq.exactlyOne
+    let name = reader.GetProperties (Uri "http://example.org/Person") |> Seq.exactlyOne
+    Assert.AreEqual("http://example.org/name", name.Uri.AbsoluteUri)

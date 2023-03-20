@@ -19,7 +19,6 @@ type Resource with
 let parseTurtle turtle =
     let graph = new Graph()
     StringParser.Parse(graph, turtle)
-    // TurtleParser().Load(graph, new IO.StringReader(turtle))
     graph
 
 [<Literal>]
@@ -95,13 +94,10 @@ let ``Has equality and hash code`` () =
      Assert.AreEqual(c1, c2)
 
 type G3 = GraphNavigator<Schema = """
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix : <http://example.org/> .
 
-:Person a rdfs:Class . # should not be necessary
-:age a rdf:Property . # should not be necessary
 :age rdfs:domain :Person ;
     rdfs:range xsd:integer .
 """>
@@ -115,45 +111,6 @@ let ``Can use schema`` () =
     let p = G3.Person.Get(graph).Single
     Assert.AreEqual(Uri "http://example.org/p1", p.Uri)
     Assert.AreEqual(10, p.Age.Single)
-
-// type G4 = GraphNavigator<Schema = """
-//     @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-//     @prefix schema: <http://schema.org/> .
-//     @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-//     @prefix : <http://example.org/> .
-
-//     schema:Audiobook rdfs:subClassOf schema:Book .
-//     schema:isbn schema:domainIncludes schema:Book .
-//     schema:isbn schema:rangeIncludes xsd:string .
-//     """>
-
-// [<Test>]
-// let ``Can use schema org`` () =
-//     let graph = parseTurtle """
-//     @prefix : <http://example.org/> .
-//     @prefix schema: <http://schema.org/> .
-//     @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-//     :b1 a schema:Book;
-//         schema:isbn "abcd"^^xsd:string . # without type annotation won't work
-//     """
-//     let b = G4.Book.Get(graph).Single
-//     Assert.AreEqual(Uri "http://example.org/b1", b.Uri)
-//     Assert.AreEqual("abcd", b.Isbn.Single)
-
-// [<Test>]
-// let ``Can use subclass`` () =
-//     let graph  = parseTurtle """
-//     @prefix : <http://example.org/> .
-//     @prefix schema: <http://schema.org/> .
-//     @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-//     :b1 a schema:Audiobook;
-//         schema:isbn "abcd"^^xsd:string . # without type annotation won't work
-//     """
-//     let b = G4.Audiobook.Get(graph).Single
-//     Assert.AreEqual(Uri "http://example.org/b1", b.Resource.Uri)
-//     Assert.AreEqual("abcd", b.Isbn.Single)
 
 
 [<Literal>]
@@ -206,4 +163,33 @@ let ``Property with mixed classes`` () =
     Assert.Contains(Uri "http://example.org/v1", cityIds)
     Assert.Contains(Uri "http://example.org/v2", cityIds)
 
+type G7 = GraphNavigator<Schema="""
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix : <http://example.org/> .
+
+:Person rdfs:subClassOf :Animal .
+:Animal rdfs:subClassOf :Thing .
+:name rdfs:domain :Thing .
+:age rdfs:domain :Animal ;
+    rdfs:range xsd:integer .
+:SSN rdfs:domain :Person .
+""">
+
+[<Test>]
+let ``Properties are inherited`` () =
+    let graph = parseTurtle """
+    @prefix : <http://example.org/> .
+
+    :ann a :Person ;
+        :name :N ;
+        :age 20 ;
+        :SSN :S .
+
+    """
+    let ann = G7.Person.Get(graph).Single
+    
+    Assert.AreEqual(Uri "http://example.org/N", ann.Name.Single.Uri)
+    Assert.AreEqual(20, ann.Age.Single)
+    Assert.AreEqual(Uri "http://example.org/S", ann.SSN.Single.Uri)
 
