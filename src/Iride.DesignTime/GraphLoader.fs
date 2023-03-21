@@ -11,8 +11,10 @@ module GraphLoader =
         |> List.tryFind IO.File.Exists
 
     let loadFromFile file =
+        let ts = new TripleStore()
+        ts.LoadFromFile(file)
         let graph = new Graph()
-        FileLoader.Load(graph, file)
+        ts.Graphs |> Seq.iter graph.Merge
         graph
 
     let tryUri x =
