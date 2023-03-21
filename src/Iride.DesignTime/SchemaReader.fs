@@ -7,6 +7,15 @@ open Iride.Common
 
 type SchemaReader(graph: IGraph, schemaQuery: string) =
 
+    // try to use name, fallback to uniqueName if needed
+    let avoidDuplicates name uniqueName items =
+        items 
+        |> Seq.groupBy name
+        |> Seq.collect (fun (n, xs) ->
+            if Seq.length xs = 1 
+            then xs |> Seq.map (fun x -> x, n)
+            else xs |> Seq.map (fun x -> x, uniqueName x))
+
     let classes =
         graph.ExecuteQuery schemaQuery :?> SparqlResultSet
         |> Seq.filter (fun x -> x["t1"].NodeType = NodeType.Uri)
@@ -21,16 +30,17 @@ type SchemaReader(graph: IGraph, schemaQuery: string) =
         |> Option.defaultValue ""
         
     member _.GetClasses () =
-        // TODO: handle duplicate labels
-        classes |> Seq.map (fun x -> {| Uri = x.Key; Label = getName x.Key |})
+        classes.Keys
+        |> avoidDuplicates getName (fun x -> x.AbsoluteUri)
+        |> Seq.map (fun (uri, name) -> {| Uri = uri; Label = name |})
 
     member _.GetProperties (classUri: Uri) =
         classes[classUri]
         |> Seq.groupBy (fun x -> x["p"].Uri)
-        |> Seq.map (fun (p, ranges) ->
+        |> avoidDuplicates (fst >> getName) (fst >> fun x -> x.AbsoluteUri)
+        |> Seq.map (fun ((p, ranges), name) ->
             let range = 
                 match Array.ofSeq ranges with
-                | [| r |]  -> r["t2"].Uri 
+                | [| r |] when r["t2"].NodeType = NodeType.Uri -> r["t2"].Uri 
                 | _ -> UriFactory.Create "http://www.w3.org/2000/01/rdf-schema#Resource"
-            {| Uri = p; Label = getName p; Range = range |})
- 
+            {| Uri = p; Label = name; Range = range |})
