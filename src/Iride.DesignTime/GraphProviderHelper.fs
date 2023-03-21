@@ -14,6 +14,7 @@ module GraphProviderHelper =
 
     let knownDataType = function
         | "http://www.w3.org/2001/XMLSchema#string"
+        | "http://www.w3.org/2000/01/rdf-schema#Literal"
         | "http://schema.org/Text" -> KnownDataType.Literal
         | "http://www.w3.org/2001/XMLSchema#integer"
         | "http://schema.org/Integer" -> KnownDataType.Integer
