@@ -10,7 +10,7 @@ type SchemaReader(graph: IGraph, schemaQuery: string) =
     // try to use name, fallback to uniqueName if needed
     let avoidDuplicates name uniqueName items =
         items 
-        |> Seq.groupBy name
+        |> Seq.groupBy (name >> System.Web.HttpUtility.UrlDecode)
         |> Seq.collect (fun (n, xs) ->
             if Seq.length xs = 1 
             then xs |> Seq.map (fun x -> x, n)
