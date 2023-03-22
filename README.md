@@ -1,5 +1,4 @@
 [![NuGet Badge](https://buildstats.info/nuget/Iride)](https://www.nuget.org/packages/Iride)
-[![Build status](https://ci.appveyor.com/api/projects/status/v69lb0ykwmm0iuf6/branch/master?svg=true)](https://ci.appveyor.com/project/giacomociti/iride/branch/master)
 
 This library contains F# generative [type providers](https://docs.microsoft.com/en-us/dotnet/fsharp/tutorials/type-providers/) for RDF and SPARQL. It is built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
 
