@@ -8,9 +8,6 @@ module Common =
 
     type KnownDataType = Node | Iri | Literal | Integer | Number | Date | Time | Boolean
 
-    type INode with
-        member this.Uri = (this :?> IUriNode).Uri
-
     type Property = { Uri: Uri; Label: string; Comment: string }
 
     let upperInitial (x: string) =

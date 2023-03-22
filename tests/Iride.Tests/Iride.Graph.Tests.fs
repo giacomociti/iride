@@ -13,12 +13,7 @@ open Iride
 open VDS.RDF
 open VDS.RDF.Parsing
 open VDS.RDF.Storage
-
-type System.Collections.Generic.IEnumerable<'a> with
-    member this.Single = Seq.exactlyOne this
-
-type INode with
-    member this.Uri = (this :?> IUriNode).Uri
+open Iride.Extensions
 
 type Resource with
     member this.Uri = this.Node.Uri

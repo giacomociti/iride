@@ -5,6 +5,7 @@ open System.Collections.Generic
 open VDS.RDF
 open VDS.RDF.Query
 open Common
+open Iride.Extensions
 
 module GraphProviderHelper =
 

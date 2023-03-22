@@ -148,6 +148,14 @@ module SchemaQuery =
        }
        """
 
+module Extensions =
+    type System.Collections.Generic.IEnumerable<'a> with 
+        member this.Single = Seq.exactlyOne this
+        member this.Option = Seq.tryExactlyOne this
+
+    type INode with 
+        member this.Uri = (this :?> IUriNode).Uri
+
 // Put the TypeProviderAssemblyAttribute in the runtime DLL, pointing to the design-time DLL
 [<assembly:CompilerServices.TypeProviderAssembly("Iride.DesignTime.dll")>]
 do ()
