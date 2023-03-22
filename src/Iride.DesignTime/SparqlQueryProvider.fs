@@ -5,8 +5,7 @@ open Microsoft.FSharp.Quotations
 open FSharp.Core.CompilerServices
 open ProviderImplementation.ProvidedTypes
 open Iride
-open Common
-open SparqlProviderlHelper
+open SparqlAnalyzer
 open TypeProviderHelper
 open VDS.RDF.Query
 open VDS.RDF.Parsing
@@ -80,8 +79,7 @@ type SparqlQueryProvider (config : TypeProviderConfig) as this =
         
         if rdfSchema <> "" then
             GraphLoader.load config.ResolutionFolder rdfSchema 
-            |> getProperties schemaQuery 
-            |> List.map (fun x -> x.Uri)
+            |> getKnownUris schemaQuery 
             |> checkSchema parsedQuery.NamespaceMap queryText
         
         match parsedQuery.QueryType with
@@ -106,7 +104,7 @@ type SparqlQueryProvider (config : TypeProviderConfig) as this =
         let rdfSchema = ProvidedStaticParameter("Schema", typeof<string>, parameterDefaultValue = "")
         let schemaQuery = ProvidedStaticParameter("SchemaQuery", typeof<string>, parameterDefaultValue = SchemaQuery.RdfPropertiesAndClasses)
         result.DefineStaticParameters([queryText; rdfSchema; schemaQuery], fun typeName args -> 
-            createType(typeName, string args.[0], string args.[1], string args.[2]))
+            createType(typeName, string args[0], string args[1], string args[2]))
 
         result.AddXmlDoc """<summary>SPARQL query.</summary>
            <param name='Query'>SPARQL query text. Variables prefixed with '$' are treated as input parameters.</param>

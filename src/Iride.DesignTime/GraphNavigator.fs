@@ -6,9 +6,8 @@ open Microsoft.FSharp.Quotations
 open FSharp.Core.CompilerServices
 open ProviderImplementation.ProvidedTypes
 open Iride
-open Iride.Common
+open Common
 open TypeProviderHelper
-open GraphProviderHelper
 open VDS.RDF
 open VDS.RDF.Parsing
 

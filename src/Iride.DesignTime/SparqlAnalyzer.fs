@@ -7,8 +7,9 @@ open VDS.RDF.Query
 open VDS.RDF.Parsing
 open VDS.RDF.Parsing.Tokens
 open Common
+open Extensions
 
-module SparqlProviderlHelper =
+module SparqlAnalyzer =
 
     type Variable =  { VariableName:  string; Type: KnownDataType }
     type Parameter = { ParameterName: string; Type: KnownDataType }
@@ -54,15 +55,15 @@ module SparqlProviderlHelper =
                 as input parameters"
 
     let knownDataType (name: string) =
-        match (name.Split '_').[0] with
-        | "IRI" -> KnownDataType.Iri
-        | "LIT" -> KnownDataType.Literal
-        | "INT" -> KnownDataType.Integer
-        | "NUM" -> KnownDataType.Number
-        | "DATE" -> KnownDataType.Date
-        | "TIME" -> KnownDataType.Time
-        | "BOOL" -> KnownDataType.Boolean
-        | _   -> Node
+        match (name.Split '_')[0] with
+        | "IRI" -> Iri
+        | "LIT" -> Literal
+        | "INT" -> Integer
+        | "NUM" -> Number
+        | "DATE" -> Date
+        | "TIME" -> Time
+        | "BOOL" -> Boolean
+        | _ -> Node
 
     let getBindings (query: SparqlQuery) parameterNames =
         let variables variableNames =
@@ -106,3 +107,8 @@ module SparqlProviderlHelper =
         let isUnkown uri = not (knownUris.Contains uri)
         let unknownUris = getUnknownUris namespaceMapper isUnkown sparql
         if unknownUris.Length > 0 then failwithf "Unknown Uris: %A\n Allowed: %A" unknownUris uris
+
+    let getKnownUris (query: string) (graph: IGraph) =
+        graph.ExecuteQuery query :?> SparqlResultSet
+        |> Seq.map (fun r -> r["uri"].Uri)
+        |> Seq.toList

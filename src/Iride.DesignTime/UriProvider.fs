@@ -6,8 +6,10 @@ open Microsoft.FSharp.Quotations
 open FSharp.Core.CompilerServices
 open ProviderImplementation.ProvidedTypes
 open Iride
-open Common
+open Name
+open Extensions
 open VDS.RDF
+open VDS.RDF.Query
 
 [<TypeProvider>]
 type UriProvider (config : TypeProviderConfig) as this =
@@ -21,6 +23,23 @@ type UriProvider (config : TypeProviderConfig) as this =
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
     do assert (typeof<CommandRuntime>.Assembly.GetName().Name = executingAssembly.GetName().Name)  
 
+    let getProperties (query: string) (graph: IGraph) =
+        let results = graph.ExecuteQuery query
+        [
+            for r in results :?> SparqlResultSet do
+                let uri = r["uri"].Uri
+                let label =
+                    match r.TryGetBoundValue "label" with
+                    | true, x -> (x :?> ILiteralNode).Value
+                    | false, _ -> getName uri
+                let comment =
+                    match r.TryGetBoundValue "comment" with
+                    | true, x -> (x :?> ILiteralNode).Value
+                    | false, _ -> uri.ToString()
+
+                yield {| Uri = uri; Label = label; Comment = comment |}
+        ]
+        
     let createType (typeName, schema, schemaQuery, allValuesMethod) =
         let providedAssembly = ProvidedAssembly()
         let result = ProvidedTypeDefinition(providedAssembly, ns, typeName, Some typeof<obj>, isErased=false)
@@ -63,7 +82,7 @@ type UriProvider (config : TypeProviderConfig) as this =
                 ProvidedStaticParameter("SchemaQuery", typeof<string>, SchemaQuery.RdfResources)
                 ProvidedStaticParameter("AllValuesMethod", typeof<string>, "")
             ],
-            fun typeName args -> createType (typeName, string args.[0], string args.[1], string args.[2]) )
+            fun typeName args -> createType (typeName, string args[0], string args[1], string args[2]) )
 
         result.AddXmlDoc """<summary>Uri properties from IRIs in RDF vocabularies.</summary>
            <param name='Schema'>RDF vocabulary where to look for IRIs.</param>

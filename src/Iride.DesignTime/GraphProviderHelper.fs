@@ -5,29 +5,13 @@ open System.Collections.Generic
 open VDS.RDF
 open VDS.RDF.Query
 open Common
-open Iride.Extensions
+open Extensions
 
 module GraphProviderHelper =
 
     type PropertyType = Literal of KnownDataType | Class of Uri
 
     type ClassType = { Name: Uri; Properties: IDictionary<Uri, PropertyType> }
-
-    let knownDataType = function
-        | "http://www.w3.org/2001/XMLSchema#string"
-        | "http://www.w3.org/2000/01/rdf-schema#Literal"
-        | "http://schema.org/Text" -> KnownDataType.Literal
-        | "http://www.w3.org/2001/XMLSchema#integer"
-        | "http://schema.org/Integer" -> KnownDataType.Integer
-        | "http://www.w3.org/2001/XMLSchema#date"
-        | "http://schema.org/Date" -> KnownDataType.Date
-        | "http://www.w3.org/2001/XMLSchema#dateTime"
-        | "http://schema.org/DateTime"-> KnownDataType.Time
-        | "http://www.w3.org/2001/XMLSchema#decimal"
-        | "http://schema.org/Number" -> KnownDataType.Number
-        | "http://www.w3.org/2001/XMLSchema#boolean"
-        | "http://schema.org/Boolean" -> KnownDataType.Boolean
-        | _ -> KnownDataType.Node
 
     let mergeDuplicates reduction keyValuePairs =
         keyValuePairs
@@ -36,13 +20,12 @@ module GraphProviderHelper =
         |> dict
 
     let mergePropertyType _ _ = // don't bother with merging types
-        Literal KnownDataType.Node // will fallback to INode property
-    
+        Literal Node // will fallback to INode property
 
     let parseClasses (schema: SparqlResultSet) =
         let classes =
             schema.Results
-            |> Seq.groupBy (fun x -> x.["t1"].Uri)
+            |> Seq.groupBy (fun x -> x["t1"].Uri)
             |> dict
         classes
         |> Seq.map (function 
@@ -51,8 +34,8 @@ module GraphProviderHelper =
                 Properties = 
                     properties
                     |> Seq.map (fun x ->
-                        let propertyUri = x.["p"].Uri
-                        let propertyTypeUri = x.["t2"].Uri
+                        let propertyUri = x["p"].Uri
+                        let propertyTypeUri = x["t2"].Uri
                         let propertyType =
                             if classes.ContainsKey propertyTypeUri 
                             then Class propertyTypeUri

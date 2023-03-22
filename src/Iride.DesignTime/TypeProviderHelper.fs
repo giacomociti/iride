@@ -4,7 +4,7 @@
     open ProviderImplementation.ProvidedTypes
     open Iride
     open Common
-    open SparqlProviderlHelper
+    open SparqlAnalyzer
     open VDS.RDF
 
     let getType = function

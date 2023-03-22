@@ -4,8 +4,7 @@ open System.Reflection
 open FSharp.Core.CompilerServices
 open ProviderImplementation.ProvidedTypes
 open Iride
-open Common
-open SparqlProviderlHelper
+open SparqlAnalyzer
 open TypeProviderHelper
 open VDS.RDF.Parsing
 
@@ -35,8 +34,7 @@ type SparqlCommandProvider (config : TypeProviderConfig) as this =
 
         if rdfSchema <> "" then
             GraphLoader.load config.ResolutionFolder rdfSchema
-            |> getProperties schemaQuery
-            |> List.map (fun x -> x.Uri)
+            |> getKnownUris schemaQuery
             |> checkSchema parsedCommand.NamespaceMap commandText
 
         createTextMethod commandText parameters
@@ -52,7 +50,7 @@ type SparqlCommandProvider (config : TypeProviderConfig) as this =
         let schemaQuery = ProvidedStaticParameter("SchemaQuery", typeof<string>, parameterDefaultValue = SchemaQuery.RdfPropertiesAndClasses)
 
         result.DefineStaticParameters([commandText; rdfSchema; schemaQuery], fun typeName args -> 
-            createType (typeName, string args.[0], string args.[1], string args.[2]))
+            createType (typeName, string args[0], string args[1], string args[2]))
 
         result.AddXmlDoc """<summary>SPARQL parametrized command.</summary>
            <param name='Command'>Command text. Variables prefixed with '$' are treated as input parameters.</param>

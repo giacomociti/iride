@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -8,8 +8,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Iride\Iride.fs" />
+    <Compile Include="Name.fs" />
     <Compile Include="Common.fs" />
-    <Compile Include="SparqlProviderlHelper.fs" />
+    <Compile Include="GraphLoader.fs" />
+    <Compile Include="SchemaReader.fs" />
+    <Compile Include="SparqlAnalyzer.fs" />
     <Compile Include="GraphProviderHelper.fs" />
     <Compile Include="..\..\paket-files\fsprojects\FSharp.TypeProviders.SDK\src\ProvidedTypes.fsi">
       <Paket>True</Paket>
@@ -19,12 +22,10 @@
       <Paket>True</Paket>
       <Link>paket-files/ProvidedTypes.fs</Link>
     </Compile>
-    <Compile Include="GraphLoader.fs" />
     <Compile Include="TypeProviderHelper.fs" />
     <Compile Include="UriProvider.fs" />
     <Compile Include="SparqlCommandProvider.fs" />
     <Compile Include="SparqlQueryProvider.fs" />
-    <Compile Include="SchemaReader.fs" />
     <Compile Include="GraphProvider.fs" />
     <Compile Include="GraphNavigator.fs" />
     <None Include="paket.references" />

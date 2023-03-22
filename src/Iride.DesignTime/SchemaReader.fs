@@ -3,8 +3,8 @@ namespace Iride
 open System
 open VDS.RDF
 open VDS.RDF.Query
-open Iride.Extensions
-open Iride.Common
+open Extensions
+open Name
 
 type SchemaReader(graph: IGraph, schemaQuery: string) =
 

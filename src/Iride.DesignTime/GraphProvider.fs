@@ -6,7 +6,7 @@ open Microsoft.FSharp.Quotations
 open FSharp.Core.CompilerServices
 open ProviderImplementation.ProvidedTypes
 open Iride
-open Common
+open Name
 open TypeProviderHelper
 open GraphProviderHelper
 open VDS.RDF
@@ -188,7 +188,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
             |> Seq.map (fun p ->
                 match p.Value with
                 | PropertyType.Class classUri -> 
-                    let elementType = snd types.[classUri] :> Type
+                    let elementType = snd types[classUri] :> Type
                     let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<PropertyValues<_>>, [elementType])
                     let predicateUri = Expr.Value p.Key.AbsoluteUri
                     let objectFactory = getObjectFactory elementType
@@ -225,7 +225,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
         let schema = ProvidedStaticParameter("Schema", typeof<string>, "")
         
         result.DefineStaticParameters([sample;schema], fun typeName args -> 
-            createType(typeName, string args.[0], string args.[1]))
+            createType(typeName, string args[0], string args[1]))
 
         result.AddXmlDoc """<summary>Type provider of RDF classes.</summary>
            <param name='Sample'>RDF Sample as Turtle.</param>
