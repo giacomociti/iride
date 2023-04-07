@@ -130,14 +130,14 @@ type GraphNavigator (config : TypeProviderConfig) as this =
         let schemaReader = createSchemaReader args
         let classes =
             schemaReader.GetClasses()
-            |> Seq.map (fun x -> x.Uri, createTypeForRdfClass x.Uri x.Label (schemaReader.GetComment(x.Uri)))
-            |> dict
+            |> Seq.map (fun x -> x.Uri.AbsoluteUri, createTypeForRdfClass x.Uri x.Label (schemaReader.GetComment(x.Uri)))
+            |> dict // use string as key, because Uri equality is too loose
         classes
         |> Seq.iter (fun (KeyValue (classUri, classType)) -> classType.AddMembersDelayed (fun () ->
             schemaReader.GetProperties(classUri)
             |> Seq.map (fun x ->
                 let prop =
-                    match classes.TryGetValue x.Range with
+                    match classes.TryGetValue x.Range.AbsoluteUri with
                     | true, classType -> objectProperty x.Uri x.Label classType
                     | _ -> literalProperty x.Uri x.Label x.Range
                 prop.AddXmlDoc (sprintf "<summary>%s %s</summary>" x.Uri.AbsoluteUri (schemaReader.GetComment(x.Uri)))

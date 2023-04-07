@@ -283,3 +283,27 @@ let ``Property with mixed classes`` () =
     Assert.Contains(Uri "http://example.org/v2", cityIds)
 
 
+type G8 = GraphProvider<Schema="""
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix : <http://example.org/> .
+
+:name rdfs:domain rdfs:Resource ;
+    rdfs:range rdfs:Literal .
+""">
+
+[<Test>]
+let ``Cau use schema with fragments`` () =
+    // this unexpected equality was causing trouble
+    Assert.AreEqual(Uri "http://www.w3.org/2000/01/rdf-schema#Resource", Uri "http://www.w3.org/2000/01/rdf-schema#Literal")
+
+    let graph = parseTurtle """
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix : <http://example.org/> .
+
+:ann a rdfs:Resource ;
+    :name "ann" .
+
+    """
+    let ann = G8.Resource.Get(graph).Single
+    Assert.AreEqual("ann", ann.Name.Single)
+    

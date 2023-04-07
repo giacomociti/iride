@@ -156,7 +156,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
             | sample, "" -> load sample |> sample2classes 
             | "", schema -> load schema |> schema2classes
             | _ -> failwith "Need either Sample or Schema"
-            |> Seq.map (fun x -> x.Name, (x, createTypeForRdfClass(providedAssembly, x, resourcePropertyName)))
+            |> Seq.map (fun x -> x.Name.AbsoluteUri, (x, createTypeForRdfClass(providedAssembly, x, resourcePropertyName)))
             |> dict
 
         let getObjectFactory (providedType: Type) =
@@ -188,7 +188,7 @@ type GraphProvider (config : TypeProviderConfig) as this =
             |> Seq.map (fun p ->
                 match p.Value with
                 | PropertyType.Class classUri -> 
-                    let elementType = snd types[classUri] :> Type
+                    let elementType = snd types[classUri.AbsoluteUri] :> Type
                     let resultType = ProvidedTypeBuilder.MakeGenericType(typedefof<PropertyValues<_>>, [elementType])
                     let predicateUri = Expr.Value p.Key.AbsoluteUri
                     let objectFactory = getObjectFactory elementType

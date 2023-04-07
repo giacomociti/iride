@@ -75,7 +75,7 @@ let ``property from schema`` () =
     let graph = GraphLoader.loadFromText schemaWithProperty
     let reader = SchemaReader(graph, defaultQueryForSchema)
     let person = reader.GetClasses() |> Seq.exactlyOne
-    let age = reader.GetProperties (person.Uri) |> Seq.exactlyOne
+    let age = reader.GetProperties (person.Uri.AbsoluteUri) |> Seq.exactlyOne
     Assert.AreEqual("http://example.org/age", age.Uri.AbsoluteUri)
     Assert.AreEqual("http://www.w3.org/2001/XMLSchema#integer", age.Range.AbsoluteUri)
    
@@ -91,7 +91,7 @@ let ``property from sample`` () =
     let graph = GraphLoader.loadFromText sampleWithProperty
     let reader = SchemaReader(graph, defaultQueryForSample)
     let person = reader.GetClasses() |> Seq.exactlyOne
-    let properties = reader.GetProperties(person.Uri)
+    let properties = reader.GetProperties(person.Uri.AbsoluteUri)
     let age =
         properties
         |> Seq.filter (fun x -> x.Uri.AbsoluteUri = "http://example.org/age")
@@ -119,7 +119,7 @@ let ``property from schema with multiple ranges`` () =
     let graph = GraphLoader.loadFromText schemaWithPropertyWithMoreRanges
     let reader = SchemaReader(graph, defaultQueryForSchema)
     let person = reader.GetClasses() |> Seq.exactlyOne
-    let age = reader.GetProperties (person.Uri) |> Seq.exactlyOne
+    let age = reader.GetProperties (person.Uri.AbsoluteUri) |> Seq.exactlyOne
     Assert.AreEqual("http://example.org/age", age.Uri.AbsoluteUri)
     Assert.AreEqual("http://www.w3.org/2000/01/rdf-schema#Resource", age.Range.AbsoluteUri)
 
@@ -140,5 +140,5 @@ let ``property from superclasses`` () =
     let graph = GraphLoader.loadFromText schemaWithSubClass
     let reader = SchemaReader(graph, defaultQueryForSchema)
     let classes = reader.GetClasses() |> Seq.filter (fun x -> x.Label = "Person") |> Seq.exactlyOne
-    let name = reader.GetProperties (Uri "http://example.org/Person") |> Seq.exactlyOne
+    let name = reader.GetProperties ("http://example.org/Person") |> Seq.exactlyOne
     Assert.AreEqual("http://example.org/name", name.Uri.AbsoluteUri)

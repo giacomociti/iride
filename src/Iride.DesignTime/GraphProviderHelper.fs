@@ -25,19 +25,19 @@ module GraphProviderHelper =
     let parseClasses (schema: SparqlResultSet) =
         let classes =
             schema.Results
-            |> Seq.groupBy (fun x -> x["t1"].Uri)
+            |> Seq.groupBy (fun x -> x["t1"].Uri.AbsoluteUri)
             |> dict
         classes
         |> Seq.map (function 
             KeyValue (classUri, properties) ->
-              { Name = classUri
+              { Name = Uri classUri
                 Properties = 
                     properties
                     |> Seq.map (fun x ->
                         let propertyUri = x["p"].Uri
                         let propertyTypeUri = x["t2"].Uri
                         let propertyType =
-                            if classes.ContainsKey propertyTypeUri 
+                            if classes.ContainsKey propertyTypeUri.AbsoluteUri 
                             then Class propertyTypeUri
                             else Literal (knownDataType propertyTypeUri.AbsoluteUri)
                         propertyUri, propertyType)

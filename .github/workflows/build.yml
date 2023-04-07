@@ -26,7 +26,7 @@ jobs:
     - name: Test
       run: dotnet test -c release
     - name: Pack
-      run: dotnet paket pack nuget --version 0.6.0-rc002
+      run: dotnet paket pack nuget --version 0.6.0-rc003
     - name: Upload nupkg
       uses: actions/upload-artifact@v1
       with:
