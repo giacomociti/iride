@@ -28,6 +28,7 @@
     <Compile Include="SparqlQueryProvider.fs" />
     <Compile Include="GraphProvider.fs" />
     <Compile Include="GraphNavigator.fs" />
+    <Compile Include="GraphBuilder.fs" />
     <None Include="paket.references" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

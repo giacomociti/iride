@@ -155,6 +155,11 @@ module Extensions =
 
     type INode with 
         member this.Uri = (this :?> IUriNode).Uri
+    
+    type IGraph with
+        member this.Resource() = { Graph = this; Node = this.CreateBlankNode() }
+        member this.Resource(qName: string) = { Graph = this; Node = this.CreateUriNode(qName) }
+        member this.Resource(uri: System.Uri) = { Graph = this; Node = this.CreateUriNode(uri) }
 
 // Put the TypeProviderAssemblyAttribute in the runtime DLL, pointing to the design-time DLL
 [<assembly:CompilerServices.TypeProviderAssembly("Iride.DesignTime.dll")>]
