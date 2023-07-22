@@ -56,25 +56,25 @@ type GraphBuilder (config : TypeProviderConfig) as this =
     // check we contain a copy of runtime files, and are not referencing the runtime DLL
     do assert (typeof<CommandRuntime>.Assembly.GetName().Name = executingAssembly.GetName().Name)
 
-    let constructor (uri: Uri) =
+    let constructor (uri: Uri) comment =
         let parameter = ProvidedParameter("resource", typeof<Resource>)
         let classUri = uri.AbsoluteUri
-        ProvidedConstructor([parameter], invokeCode = function
-        | [res] -> 
-        <@@ 
-            let resource = %%res:Resource
-            let typeNode = resource.Graph.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
-            let classNode = resource.Graph.CreateUriNode(UriFactory.Create classUri)
-            resource.Graph.Assert(resource.Node, typeNode, classNode)
-            resource
-        @@>
-        | _ -> failwith "wrong ctor params")
+        let ctor = 
+            ProvidedConstructor([parameter], invokeCode = function
+            | [res] -> 
+            <@@ 
+                let resource = %%res:Resource
+                let typeNode = resource.Graph.CreateUriNode(UriFactory.Create RdfSpecsHelper.RdfType)
+                let classNode = resource.Graph.CreateUriNode(UriFactory.Create classUri)
+                resource.Graph.Assert(resource.Node, typeNode, classNode)
+                resource
+            @@>
+            | _ -> failwith "wrong ctor params")
+        ctor.AddXmlDoc (sprintf "<summary>%s %s</summary>" uri.AbsoluteUri comment)
+        ctor
 
-    let createTypeForRdfClass (classUri: Uri) typeName comment =
-        let providedType = ProvidedTypeDefinition(typeName, Some typeof<Resource>, hideObjectMethods = true)
-        providedType.AddMembersDelayed (fun () -> [ constructor classUri ])
-        providedType.AddXmlDoc (sprintf "<summary>%s %s</summary>" classUri.AbsoluteUri comment)
-        providedType
+    let createTypeForRdfClass typeName =
+        ProvidedTypeDefinition(typeName, Some typeof<Resource>, hideObjectMethods = true)
 
     let createSchemaReader args =
         match args.Schema, args.Sample with
@@ -91,51 +91,58 @@ type GraphBuilder (config : TypeProviderConfig) as this =
         let schemaReader = createSchemaReader args
         let classes =
             schemaReader.GetClasses()
-            |> Seq.map (fun x -> x.Uri.AbsoluteUri, createTypeForRdfClass x.Uri x.Label (schemaReader.GetComment(x.Uri)))
+            |> Seq.map (fun x -> x.Uri.AbsoluteUri, createTypeForRdfClass x.Label)
             |> dict // use string as key, because Uri equality is too loose
         classes
-        |> Seq.iter (fun (KeyValue (classUri, classType)) -> classType.AddMembersDelayed (fun () ->
-            schemaReader.GetProperties(classUri)
-            |> Seq.map (fun x ->
-                let prop =
-                    match classes.TryGetValue x.Range.AbsoluteUri with
-                    | true, objectType -> 
-                        let predicateUri = x.Uri.AbsoluteUri
-                        ProvidedMethod(x.Label,
-                            parameters = [ProvidedParameter("value", objectType)], 
-                            returnType = classType, 
-                            invokeCode = (function
-                                | [this; value] ->                                 
-                                <@@
-                                    let resource = %%this : Resource
-                                    let other = %%value : Resource
-                                    let predicate = resource.Graph.CreateUriNode(UriFactory.Create predicateUri)
-                                    resource.Graph.Assert(resource.Node, predicate, other.Node)
-                                    resource
-                                @@>
-                                | _ -> failwith "wrong method params") )
-                    | _ -> 
-                        let dataType = knownDataType x.Range.AbsoluteUri
-                        let elementType = getType dataType
-                        let predicateUri = x.Uri.AbsoluteUri
-                        let nodeExtractorMethodInfo = getNodeExtractorMethod dataType
-                        ProvidedMethod(x.Label,
-                            parameters = [ProvidedParameter("value", elementType)], 
-                            returnType = classType, 
-                            invokeCode = (function
-                                | [this; value] -> 
-                                let literal = Expr.Call(nodeExtractorMethodInfo, [value])
-                                <@@
-                                    let resource = %%this : Resource
-                                    let predicate = resource.Graph.CreateUriNode(UriFactory.Create predicateUri)
-                                    resource.Graph.Assert(resource.Node, predicate, %%literal)
-                                    resource
-                                @@>
-                                | _ -> failwith "wrong method params") )
+        |> Seq.iter (fun (KeyValue (classUri, classType)) -> 
+            classType.AddXmlDocDelayed (fun () -> sprintf "<summary>%s %s</summary>" classUri (schemaReader.GetComment(UriFactory.Create classUri)))
+            classType.AddMembersDelayed (fun () ->
+                let uri = UriFactory.Create classUri
+                let comment = sprintf "<summary>%s %s</summary>" classUri (schemaReader.GetComment(uri))
+                let ctor = constructor uri comment :> MemberInfo
+                let props =
+                    schemaReader.GetProperties(classUri)
+                    |> Seq.map (fun x ->
+                        let prop =
+                            match classes.TryGetValue x.Range.AbsoluteUri with
+                            | true, objectType -> 
+                                let predicateUri = x.Uri.AbsoluteUri
+                                ProvidedMethod(x.Label,
+                                    parameters = [ProvidedParameter("value", objectType)], 
+                                    returnType = classType, 
+                                    invokeCode = (function
+                                        | [this; value] ->                                 
+                                        <@@
+                                            let resource = %%this : Resource
+                                            let other = %%value : Resource
+                                            let predicate = resource.Graph.CreateUriNode(UriFactory.Create predicateUri)
+                                            resource.Graph.Assert(resource.Node, predicate, other.Node)
+                                            resource
+                                        @@>
+                                        | _ -> failwith "wrong method params") )
+                            | _ -> 
+                                let dataType = knownDataType x.Range.AbsoluteUri
+                                let elementType = getType dataType
+                                let predicateUri = x.Uri.AbsoluteUri
+                                let nodeExtractorMethodInfo = getNodeExtractorMethod dataType
+                                ProvidedMethod(x.Label,
+                                    parameters = [ProvidedParameter("value", elementType)], 
+                                    returnType = classType, 
+                                    invokeCode = (function
+                                        | [this; value] -> 
+                                        let literal = Expr.Call(nodeExtractorMethodInfo, [value])
+                                        <@@
+                                            let resource = %%this : Resource
+                                            let predicate = resource.Graph.CreateUriNode(UriFactory.Create predicateUri)
+                                            resource.Graph.Assert(resource.Node, predicate, %%literal)
+                                            resource
+                                        @@>
+                                        | _ -> failwith "wrong method params") )
 
-                prop.AddXmlDoc (sprintf "<summary>%s %s</summary>" x.Uri.AbsoluteUri (schemaReader.GetComment(x.Uri)))
-                prop)
-            |> Seq.toList))
+                        prop.AddXmlDoc (sprintf "<summary>%s %s</summary>" x.Uri.AbsoluteUri (schemaReader.GetComment(x.Uri)))
+                        prop : MemberInfo)
+                    |> Seq.toList
+                ctor::props))
 
         Seq.iter providedType.AddMember classes.Values
         providedType

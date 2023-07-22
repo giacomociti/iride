@@ -109,11 +109,8 @@ type GraphNavigator (config : TypeProviderConfig) as this =
         let get = methodGet providedType uri
         [ ctor :> MemberInfo; get :> MemberInfo ]
 
-    let createTypeForRdfClass classUri typeName comment =
-        let providedType = ProvidedTypeDefinition(typeName, Some typeof<Resource>, hideObjectMethods = true)
-        providedType.AddMembersDelayed (fun () -> createMembersForRdfClass providedType classUri)
-        providedType.AddXmlDoc (sprintf "<summary>%s %s</summary>" classUri.AbsoluteUri comment)
-        providedType
+    let createTypeForRdfClass typeName =
+        ProvidedTypeDefinition(typeName, Some typeof<Resource>, hideObjectMethods = true)
 
     let createSchemaReader args =
         match args.Schema, args.Sample with
@@ -130,19 +127,25 @@ type GraphNavigator (config : TypeProviderConfig) as this =
         let schemaReader = createSchemaReader args
         let classes =
             schemaReader.GetClasses()
-            |> Seq.map (fun x -> x.Uri.AbsoluteUri, createTypeForRdfClass x.Uri x.Label (schemaReader.GetComment(x.Uri)))
+            |> Seq.map (fun x -> x.Uri.AbsoluteUri, createTypeForRdfClass x.Label)
             |> dict // use string as key, because Uri equality is too loose
         classes
-        |> Seq.iter (fun (KeyValue (classUri, classType)) -> classType.AddMembersDelayed (fun () ->
-            schemaReader.GetProperties(classUri)
-            |> Seq.map (fun x ->
-                let prop =
-                    match classes.TryGetValue x.Range.AbsoluteUri with
-                    | true, classType -> objectProperty x.Uri x.Label classType
-                    | _ -> literalProperty x.Uri x.Label x.Range
-                prop.AddXmlDoc (sprintf "<summary>%s %s</summary>" x.Uri.AbsoluteUri (schemaReader.GetComment(x.Uri)))
-                prop)
-            |> Seq.toList))
+        |> Seq.iter (fun (KeyValue (classUri, classType)) -> 
+            classType.AddXmlDocDelayed (fun () -> sprintf "<summary>%s %s</summary>" classUri (schemaReader.GetComment(UriFactory.Create classUri)))
+            classType.AddMembersDelayed (fun () ->
+                let properties =
+                    schemaReader.GetProperties(classUri)
+                    |> Seq.map (fun x ->
+                        let prop =
+                            match classes.TryGetValue x.Range.AbsoluteUri with
+                            | true, classType -> objectProperty x.Uri x.Label classType
+                            | _ -> literalProperty x.Uri x.Label x.Range
+                        prop.AddXmlDoc (sprintf "<summary>%s %s</summary>" x.Uri.AbsoluteUri (schemaReader.GetComment(x.Uri)))
+                        prop)
+                    |> Seq.cast<MemberInfo>
+                    |> Seq.toList
+                let methods = createMembersForRdfClass classType (UriFactory.Create classUri)
+                properties @ methods))
 
         Seq.iter providedType.AddMember classes.Values
         providedType
