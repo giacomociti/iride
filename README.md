@@ -1,9 +1,27 @@
 [![NuGet Badge](https://buildstats.info/nuget/Iride)](https://www.nuget.org/packages/Iride)
 [![Build and Test](https://github.com/giacomociti/iride/actions/workflows/build.yml/badge.svg)](https://github.com/giacomociti/iride/actions/workflows/build.yml)
 
-This library contains F# generative [type providers](https://docs.microsoft.com/en-us/dotnet/fsharp/tutorials/type-providers/) for RDF and SPARQL. It is built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
+This library contains F# [type providers](https://docs.microsoft.com/en-us/dotnet/fsharp/tutorials/type-providers/) for RDF and SPARQL. It is built on top of [dotNetRDF](https://github.com/dotnetrdf/dotnetrdf).
 
-## GraphProvider
+
+![](tests/iride-foaf.gif)
+
+### Reading and writing RDF graphs
+_GraphProvider_ helps working with RDF graphs, providing .NET types and members corresponding to RDF classes and properties found in ontologies or in sample data graphs. It can be used also from C# because it's a _generative_ type provider.
+
+ The same reading and writing capabilities are also split in two separate type providers (_GraphNavigator_ and _GraphBuilder_) which, being of the erased kind, can cope with larger ontologies like schema.org.
+
+
+### Querying RDF with SPARQL
+
+_SparqlQueryProvider_ and _SparqlCommandProvider_ are generative providers
+to safely create parametric SPARQL queries and typed wrappers for results.
+
+
+
+## Type providers
+
+### GraphProvider
 
 _GraphProvider_ generates types from a schema or from a sample.
 
@@ -19,6 +37,8 @@ Given the following [Turtle](https://www.w3.org/TR/turtle/) sample file _alice.t
 The type provider infers a type `Person` with a property `Age` and a `Get` factory method returning the instances in a given graph.
 
 ```fs
+#r "nuget: Iride"
+
 open Iride
 open VDS.RDF
 
@@ -46,14 +66,71 @@ type G = GraphProvider<Schema = """
     """>
 ```
 
-Notice also that the parameter, both for the schema and for the sample, can be either a file path or inline text.
+Notice also that the parameter, both for the schema and for the sample, can be inline text, a file path or a URL.
 
-## SparqlQueryProvider
+### GraphBuilder
+
+GraphBuilder allows to fluently create graphs using a given ontology:
+
+```fs
+#r "nuget: Iride" 
+
+open Iride
+open VDS.RDF
+open Iride.Extensions
+
+type foaf = GraphBuilder<Schema="http://xmlns.com/foaf/0.1/index.rdf">
+
+let graph = new Graph()
+graph.NamespaceMap.AddNamespace("", UriFactory.Create "http://example.org/")
+graph.NamespaceMap.AddNamespace("foaf", UriFactory.Create "http://xmlns.com/foaf/0.1/")
+
+foaf.Person(graph.Resource ":ann")
+    .FirstName("Ann")
+    .Knows(foaf.Person(graph.Resource ":bob")
+        .FirstName("Bob"))
+            
+graph.SaveToFile("people.ttl")
+```
+
+### GraphNavigator
+The file created with the builder:
+
+```ttl
+@prefix : <http://example.org/>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+
+:ann a foaf:Person;
+     foaf:firstName "Ann";
+     foaf:knows :bob.
+:bob a foaf:Person;
+     foaf:firstName "Bob".
+```
+
+can be read with the navigator:
+
+```fs
+#r "nuget: Iride" 
+
+open Iride
+open VDS.RDF
+
+type foaf = GraphNavigator<Schema="http://xmlns.com/foaf/0.1/index.rdf">
+
+let graph = new Graph()
+graph.LoadFromFile("people.ttl")
+
+foaf.Person.Get(graph)
+|> Seq.collect (fun x -> x.FirstName)
+
+```
+
+### SparqlQueryProvider
 
 _SparqlQueryProvider_ checks SPARQL queries at design time, in the same vein as [SqlCommandProvider](http://fsprojects.github.io/FSharp.Data.SqlClient/).
 For example it detects syntax errors in SPARQL text:
 
-![](https://github.com/giacomociti/iride/blob/master/tests/Ask.PNG)
+![](tests/Ask.PNG)
 
 It also provides typed input parameters and (for SELECT queries) typed `Result` objects.
 In the following example, the type provider generates a type `Q` with a static method `GetText` and a nested type `Q.Result`.
@@ -88,7 +165,7 @@ may return unparseable values due to the schemaless nature of RDF.
 
 Supported data types are IRI, LIT, INT, NUM, DATE, TIME, BOOL.
 
-## SparqlCommandProvider
+### SparqlCommandProvider
 
 _SparqlCommandProvider_ behaves like _SparqlQueryProvider_ except that it covers update commands.
 
@@ -104,7 +181,7 @@ Cmd.GetText(
 // INSERT DATA {<http://example.org/p1> <http://example.org/age> 25 }
 ```
 
-## UriProvider
+### UriProvider
 
 _UriProvider_ creates `System.Uri` properties from IRIs in RDF vocabularies.
 
@@ -128,10 +205,10 @@ SELECT ?uri ?label ?comment WHERE {
 
 You can provide your own SPARQL query to customize the set of properties.
 
-## Vocabulary checks
+### Vocabulary checks
 
 To detect typos in property and class names, it is useful to restrict the accepted vocabulary in queries and commands:
 
-![](https://github.com/giacomociti/iride/blob/master/tests/RdfSchema.PNG)
+![](tests/RdfSchema.PNG)
 
 In the example above the type provider reports an error because _BarZ_ is not present in the vocabulary specified by the _Schema_ parameter.
